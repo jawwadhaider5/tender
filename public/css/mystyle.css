@@ -1,0 +1,116 @@
+.sidebar {
+    background: rgb(90, 88, 88);
+}
+
+.content-wrapper {
+    /* background-color: #52CDFF; */
+}
+
+.sidebar .nav .nav-item .nav-link i.menu-icon> :hover {
+    color: red;
+}
+
+.sidebar .nav .nav-item .nav-link {
+    color: white;
+}
+
+
+.datepicker.datepicker-dropdown, .datepicker.datepicker-inline {
+    cursor: pointer;
+}
+
+/* .select2[aria-selected=true] {
+    display: none;
+} */
+
+
+/* .select2 {
+    height: 60px;
+    overflow: scroll;
+} */
+
+@media print {
+    .label-border-outer {
+        border: none !important;
+    }
+    .label-border-internal {
+        border: none !important;
+    }
+    .sticker-border {
+        border: none !important;
+    }
+    #preview_box {
+        padding-left: 0px !important;
+    }
+    #toast-container {
+        display: none !important;
+    }
+}
+
+.print_section {
+    display: none;
+}
+
+@media print {
+    .print_section {
+        display: inline;
+    }
+    .no-print {
+        display: none;
+    }
+}
+
+input[type="file"] {
+    display: block;
+}
+
+.imageThumb {
+    max-height: 100px;
+    width: 100px;
+    border: 2px solid;
+    padding: 1px;
+    cursor: pointer;
+}
+
+.pip {
+    display: inline-block;
+    margin: 10px 10px 0 0;
+}
+
+.pop {
+    display: inline-block;
+    margin: 10px 10px 0 0;
+}
+
+.imageRemove {
+    display: block;
+    background: #444;
+    border: 1px solid black;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+}
+
+.remove {
+    display: block;
+    background: #444;
+    border: 1px solid black;
+    color: white;
+    text-align: center;
+    cursor: pointer;
+}
+
+.remove:hover {
+    background: white;
+    color: black;
+}
+
+.columns {
+    display: table-cell;
+    padding-bottom: 150px;
+}
+
+.colmn {
+    display: table-cell;
+    padding-bottom: 120px;
+}

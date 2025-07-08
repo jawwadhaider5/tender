@@ -1,0 +1,354 @@
+@extends('layouts.admin')
+
+@section('content')
+<div class="main-panel">
+    <div class="content-wrapper">
+        @if (Session::get('success'))
+            <div class="alert alert-{{ Session::get('success') ? 'success' : 'danger' }}">
+                <p>{{ Session::get('success') }}</p>
+            </div>
+        @endif
+
+        @can('client')
+        <div class="mb-3 d-flex justify-content-end">
+            <a class="create-client btn btn-primary btn-sm btn-rounded" title="Add New Client" href="{{ route('clients.create') }}">
+                <i class="mdi mdi-plus-box"></i>
+            </a>
+        </div>
+        @endcan
+
+        <!-- City Based Table Section -->
+        <x-city-based-table
+            title="Clients"
+            tableId="clients_by_city_table"
+            route="{{ route('clients-by-city') }}"
+            type="clients"
+        />
+
+        <!-- Client Details Datatable Section -->
+        <div id="client_details_section" style="display: none; position: relative;">
+            <div class="row">
+                <div class="col-lg-12 grid-margin stretch-card">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="space">
+                                    <div class="card-title">
+                                        <h4 id="client_details_title">Client Details</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="min-height: 200px;">
+                                <table id="client_details_table" class="table table-hover table-bordered w-100">
+                                    <thead>
+                                        <tr class="bg-success text-white">
+                                            <th>#</th>
+                                            <th>Company Name</th>
+                                            <th>Comments</th>
+                                            <th>Responses</th>
+                                            <th>Files</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Close button positioned at top right corner -->
+            <button type="button" class="btn btn-sm btn-secondary" id="close_client_details" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
+                <i class="mdi mdi-close"></i> Close
+            </button>
+        </div>
+    </div>
+</div>
+@endsection
+
+@section('javascript')
+    @stack('javascript')
+
+    <script>
+    $(document).ready(function() {
+        var clientDetailsTable = null;
+
+        // Handle client click from city-based table
+        $(document).on('client-clicked', function(e, link) {
+            var clientId = link.split('=')[1];
+            loadClientDetails(clientId);
+        });
+
+        // Handle close button click
+        $(document).on('click', '#close_client_details', function() {
+            $('#client_details_section').hide();
+            if (clientDetailsTable) {
+                clientDetailsTable.destroy();
+                clientDetailsTable = null;
+            }
+        });
+
+        function loadClientDetails(clientId) {
+            // Show the client details section
+            $('#client_details_section').show();
+
+            // Update title to show loading
+            $('#client_details_title').text('Loading Client Details...');
+
+            // Destroy existing table if it exists
+            if (clientDetailsTable) {
+                clientDetailsTable.destroy();
+            }
+
+            // Initialize new datatable
+            clientDetailsTable = $('#client_details_table').DataTable({
+                processing: true,
+                serverSide: false,
+                ajax: {
+                    url: '/client-details/' + clientId,
+                    type: "GET",
+                    dataSrc: function(json) {
+                        // Update title with client name if available
+                        if (json.data && json.data.length > 0) {
+                            $('#client_details_title').text('Client Details: ' + json.data[0].company_name);
+                        } else {
+                            $('#client_details_title').text('Client Details');
+                        }
+                        return json.data || [];
+                    }
+                },
+                "ordering": false,
+                "pagingType": "full_numbers",
+                "pageLength": 10,
+                dom: 'Bfrtip',
+                buttons: [
+                    'copy', 'csv', 'excel',
+                    {
+                        extend: 'print',
+                        exportOptions: {
+                            stripHtml: false,
+                            columns: [0, 1, 2, 3, 4]
+                        }
+                    }
+                ],
+                columnDefs: [{ 
+                    "targets": 5,
+                    "orderable": true,
+                    "searchable": true,
+                    "className": 'text-center',
+                }],
+                columns: [
+                    { data: 'id', name: 'id' },
+                    { data: 'company_name', name: 'company_name', render: function(data, type, row) { 
+                        return '<a href="/clients/'+row.id+'" class="text-decoration-none">'+ row.company_name + '</a>';
+                    } },
+                    { data: 'comment', name: 'comment' },
+                    { data: 'respond', name: 'respond' },
+                    { data: 'files', name: 'files' },
+                    { data: 'action', name: 'action' }
+                ],
+                drawCallback: function(settings) {
+                    $('.client_response_users').select2({
+                        width: '100%',
+                        placeholder: "Assign to users",
+                        allowClear: true
+                    });
+                    $('.dropdown-menu').on('click', function (event) {
+                        event.stopPropagation();
+                    });
+                }
+            });
+
+            // Scroll to the client details section
+            $('html, body').animate({
+                scrollTop: $('#client_details_section').offset().top - 100
+            }, 500);
+        }
+
+        // Handle form submissions for comments, responses, and files
+        $(document).on('submit', 'form[action*="post-client-comments"]', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var data = form.serialize();
+
+            $.ajax({
+                method: "POST",
+                url: form.attr("action"),
+                dataType: "json",
+                data: data,
+                success: function(result) {
+                    if (result.success == true) {
+                        clientDetailsTable.ajax.reload();
+                        toastr.success(result.message);
+                    } else {
+                        toastr.error(result.message);
+                    }
+                }
+            });
+        });
+
+        $(document).on('submit', 'form[action*="post-client-responds"]', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var data = form.serialize();
+
+            $.ajax({
+                method: "POST",
+                url: form.attr("action"),
+                dataType: "json",
+                data: data,
+                success: function(result) {
+                    if (result.success == true) {
+                        clientDetailsTable.ajax.reload();
+                        toastr.success(result.message);
+                    } else {
+                        toastr.error(result.message);
+                    }
+                }
+            });
+        });
+
+        $(document).on('submit', 'form[action*="post-client-files"]', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var formData = new FormData(form[0]);
+
+            $.ajax({
+                method: "POST",
+                url: form.attr("action"),
+                dataType: "json",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(result) {
+                    if (result.success == true) {
+                        clientDetailsTable.ajax.reload();
+                        toastr.success(result.message);
+                    } else {
+                        toastr.error(result.message);
+                    }
+                }
+            });
+        });
+
+        // Handle delete actions
+        $(document).on('click', 'a.delete-comment', function(e) {
+            e.preventDefault();
+            swal({
+                title: "Do you want to delete comment ?",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+            }).then((willDelete) => {
+                if (willDelete) {
+                    var href = $(this).attr('href'); 
+                    $.ajax({
+                        method: "GET",
+                        url: href,
+                        dataType: "json",
+                        success: function(result) {
+                            if (result.success == true) {
+                                clientDetailsTable.ajax.reload();
+                                toastr.success(result.message);
+                            } else {
+                                toastr.error("Something went wrong!");
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        $(document).on('click', 'a.delete-respond', function(e) {
+            e.preventDefault();
+            swal({
+                title: "Do you want to delete respond ?",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+            }).then((willDelete) => {
+                if (willDelete) {
+                    var href = $(this).attr('href'); 
+                    $.ajax({
+                        method: "GET",
+                        url: href,
+                        dataType: "json",
+                        success: function(result) {
+                            if (result.success == true) {
+                                clientDetailsTable.ajax.reload();
+                                toastr.success(result.message);
+                            } else {
+                                toastr.error("Something went wrong!");
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        $(document).on('click', 'a.delete-file', function(e) {
+            e.preventDefault();
+            swal({
+                title: "Do you want to delete file ?",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+            }).then((willDelete) => {
+                if (willDelete) {
+                    var href = $(this).attr('href'); 
+                    $.ajax({
+                        method: "GET",
+                        url: href,
+                        dataType: "json",
+                        success: function(result) {
+                            if (result.success == true) {
+                                clientDetailsTable.ajax.reload();
+                                toastr.success(result.message);
+                            } else {
+                                toastr.error("Something went wrong!");
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    });
+    </script>
+
+    <style>
+    .code-link, .city-link, .data-link {
+        color: #007bff;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .code-link:hover, .city-link:hover, .data-link:hover {
+        text-decoration: underline;
+    }
+    .city-links {
+        line-height: 1.8;
+    }
+    .data-item {
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .data-item:last-child {
+        border-bottom: none;
+    }
+    .data-container {
+        min-height: 50px;
+    }
+
+    /* Ensure tables take full width */
+    .table-responsive {
+        width: 100%;
+    }
+
+    .table {
+        width: 100% !important;
+    }
+
+    /* Ensure proper spacing between sections */
+    #client_details_section {
+        margin-top: 20px;
+    }
+    </style>
+@endsection
