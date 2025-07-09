@@ -421,18 +421,15 @@ class ClientController extends Controller
                 $time = $request->get('time');
                 $assigned_user_id = $request->get('assigned_user_id');
 
-                // Combine date and time properly
-                if ($time) {
-                    $formattedDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $time);
-                } else {
-                    $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)->setTimeFrom(Carbon::now());
-                }
+                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)
+                    ->setTimeFrom(Carbon::now());
 
                 $client = ClientRespond::create([
                     "client_id" => $client_id,
                     "responded_by" => $user->id,
                     "subject" => $subject,
                     "date" => $formattedDateTime,
+                    "time" => $time,
                     "text" => $text,
                     "assigned_user_id" => $assigned_user_id,
                     
@@ -464,18 +461,15 @@ class ClientController extends Controller
             $time = $request->get('time');
             $assigned_user_id = $request->get('assigned_user_id');
 
-            // Combine date and time properly
-            if ($time) {
-                $formattedDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $time);
-            } else {
-                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)->setTimeFrom(Carbon::now());
-            }
+            $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)
+                ->setTimeFrom(Carbon::now());
 
             $client = ClientRespond::create([
                 "client_id" => $client_id,
                 "responded_by" => $user->id,
                 "subject" => $subject,
                 "date" => $formattedDateTime,
+                "time" => $time,
                 "text" => $text,
                 "assigned_user_id" => $assigned_user_id,
                 
