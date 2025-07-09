@@ -97,6 +97,19 @@ class TenderController extends Controller
 
     public function create()
     {
+        $user = auth()->user();
+        $user->userdetail;
+
+        $cities = City::orderBy('name', 'desc')->get();
+        $clients = Client::orderBy('company_name', 'asc')->get();
+        $users = User::all();
+
+        $userss = "";
+        foreach ($users as $user) {
+            $userss .= '<option value="' . $user->id . '">' . $user->name . '</option>';
+        }
+
+        return view('tenders.create', compact('cities', 'clients', 'users', 'userss'));
     }
 
     public function store(Request $request)
@@ -132,8 +145,16 @@ class TenderController extends Controller
             $output = array('success' => false, 'message' => "Something went wrong!");
         }
 
-        return $output;
-        // return redirect("tenders")->with('success', 'Tenders created successfully');
+        // Handle both AJAX and regular form submissions
+        if (request()->ajax()) {
+            return $output;
+        } else {
+            if ($output['success']) {
+                return redirect("tenders-by-city")->with('success', $output['message']);
+            } else {
+                return redirect()->back()->with('error', $output['message'])->withInput();
+            }
+        }
     }
 
     public function show($id)
