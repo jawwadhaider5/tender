@@ -384,8 +384,13 @@ class FutureClientController extends Controller
                 $date = $request->get('date');
                 $time = $request->get('time');
                 $assigned_user_id = $request->get('assigned_user_id');
-                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)
-                    ->setTimeFrom(Carbon::now());
+                
+                // Combine date and time properly
+                if ($time) {
+                    $formattedDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $time);
+                } else {
+                    $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)->setTimeFrom(Carbon::now());
+                }
 
                 $future_client = FutureClientRespond::create([
                     "future_client_id" => $future_client_id,
@@ -393,7 +398,6 @@ class FutureClientController extends Controller
                     "subject" => $subject,
                     "assigned_user_id" => $assigned_user_id,
                     "date" => $formattedDateTime,
-                    "time" => $time,
                     "text" => $text,
                 ]);
 
@@ -426,8 +430,13 @@ class FutureClientController extends Controller
             $date = $request->get('date');
             $time = $request->get('time');
             $assigned_user_id = $request->get('assigned_user_id');
-            $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)
-                ->setTimeFrom(Carbon::now());
+            
+            // Combine date and time properly
+            if ($time) {
+                $formattedDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $time);
+            } else {
+                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)->setTimeFrom(Carbon::now());
+            }
 
             $future_client = FutureClientRespond::create([
                 "future_client_id" => $future_client_id,
@@ -435,7 +444,6 @@ class FutureClientController extends Controller
                 "subject" => $subject,
                 "assigned_user_id" => $assigned_user_id,
                 "date" => $formattedDateTime,
-                "time" => $time,
                 "text" => $text,
             ]);
 
@@ -624,9 +632,9 @@ class FutureClientController extends Controller
             $future_client->coming_date =  Carbon::createFromFormat('Y-m-d', $request->input('coming_date'))->setTimeFrom(Carbon::now());
             $future_client->save();
 
-            $data = ["success" => true,  "'message'" => "Future Client updated successfully"];
+            $data = ["success" => true,  "message" => "Future Client updated successfully"];
         } catch (Exception $e) {
-            $data = ["success" => false,  "'message'" => "Something went worng!"];
+            $data = ["success" => false,  "message" => "Something went wrong!"];
         }
 
         return $data;
@@ -777,27 +785,26 @@ class FutureClientController extends Controller
             $future_client->file = $fil;
             $future_client->allusers = $userss;
 
+            // Generate action buttons HTML
+            $actionHtml = '';
+            if (auth()->user()->can('future-client')) {
+                $editUrl = "/future-clients/{$future_client->id}/edit";
+                $deleteUrl = "/future-clients/{$future_client->id}";
+                $actionHtml = '<div class="btn-group">
+                    <button type="button" class="btn btn-primary btn-rounded dropdown-toggle btn-xs p-2" 
+                        data-toggle="dropdown" aria-expanded="false">Action
+                        <span class="caret"></span><span class="sr-only">
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-right p-3" role="menu">
+                        <li class=""><a href="' . $editUrl . '" class="edit-future-client text-decoration-none"><i class="btn btn-sm btn-dark mdi mdi-table-edit p-1 m-1" title="Edit"></i> Edit</a> </li>
+                        <li class=""><a href="' . $deleteUrl . '" class="delete-future-client text-decoration-none"><i class="btn btn-sm btn-danger  mdi mdi-delete p-1 m-1" title="Delete"></i> Delete</a></li>
+                    </ul>
+                </div>';
+            }
+
             return Datatables::of(collect([$future_client]))
-                ->addColumn(
-                    'action',
-                    '<div class="btn-group">
-
-            <button type="button" class="btn btn-primary btn-rounded dropdown-toggle btn-xs p-2" 
-                data-toggle="dropdown" aria-expanded="false">Action
-                <span class="caret"></span><span class="sr-only">
-                </span>
-            </button>
-
-            <ul class="dropdown-menu dropdown-menu-right p-3" role="menu">
-              
-            @can("future-client")
-                <li class=""><a href="{{action(\'FutureClientController@edit\', [$id])}}" class="edit-future-client text-decoration-none"><i class="btn btn-sm btn-dark mdi mdi-table-edit p-1 m-1" title="Edit"></i> Edit</a> </li>
-            @endcan
-            @can("future-client")
-                <li class=""><a href="{{action(\'FutureClientController@destroy\', [$id])}}" class="delete-future-client text-decoration-none"><i class="btn btn-sm btn-danger  mdi mdi-delete p-1 m-1" title="Delete"></i> Delete</a></li>
-            @endcan     
-            </ul></div>'
-                )
+                ->addColumn('action', $actionHtml)
                 ->addColumn(
                     'comment',
                     '<div class="dropdown p-1">

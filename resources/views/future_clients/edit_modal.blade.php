@@ -9,7 +9,7 @@
         <div class="modal-body">
 
 
-            {!! Form::open(['url' => action('FutureClientController@update',[$future_client->id]),'method' => 'PUT',
+            {!! Form::open(['url' => route('future-clients.update', $future_client->id),'method' => 'PUT',
             'id' => 'edit_future_client_form','class' => '', 'enctype' => 'multipart/form-data']) !!}
             <input type="hidden" id="future_client_id" value="{{ $future_client->id }}">
  

@@ -421,15 +421,18 @@ class ClientController extends Controller
                 $time = $request->get('time');
                 $assigned_user_id = $request->get('assigned_user_id');
 
-                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)
-                    ->setTimeFrom(Carbon::now());
+                // Combine date and time properly
+                if ($time) {
+                    $formattedDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $time);
+                } else {
+                    $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)->setTimeFrom(Carbon::now());
+                }
 
                 $client = ClientRespond::create([
                     "client_id" => $client_id,
                     "responded_by" => $user->id,
                     "subject" => $subject,
                     "date" => $formattedDateTime,
-                    "time" => $time,
                     "text" => $text,
                     "assigned_user_id" => $assigned_user_id,
                     
@@ -461,15 +464,18 @@ class ClientController extends Controller
             $time = $request->get('time');
             $assigned_user_id = $request->get('assigned_user_id');
 
-            $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)
-                ->setTimeFrom(Carbon::now());
+            // Combine date and time properly
+            if ($time) {
+                $formattedDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $time);
+            } else {
+                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)->setTimeFrom(Carbon::now());
+            }
 
             $client = ClientRespond::create([
                 "client_id" => $client_id,
                 "responded_by" => $user->id,
                 "subject" => $subject,
                 "date" => $formattedDateTime,
-                "time" => $time,
                 "text" => $text,
                 "assigned_user_id" => $assigned_user_id,
                 
@@ -617,25 +623,41 @@ class ClientController extends Controller
 
     public function update(Request $request, $id)
     {
+        try {
+            $validated = $request->validate([
+                'address' => 'required',
+                'contact_no' => 'required',
+                'company_name' => 'required',
+            ]);
 
-        $validated = $request->validate([
-            'address' => 'required',
-            'contact_no' => 'required',
-            'company_name' => 'required',
-        ]);
+            $client = Client::find($id);
 
-        $client = Client::find($id);
+            $client->address =  $request->input('address');
+            $client->company_name =  $request->input('company_name');
+            $client->contact_no =  $request->input('contact_no');
+            $client->email =  $request->input('email');
+            $client->web_address =  $request->input('web_address');
+            $client->group_id =  $request->input('group_id');
+            $client->city_id =  $request->input('city_id');
+            $client->save();
 
-        $client->address =  $request->input('address');
-        $client->company_name =  $request->input('company_name');
-        $client->contact_no =  $request->input('contact_no');
-        $client->email =  $request->input('email');
-        $client->web_address =  $request->input('web_address');
-        $client->group_id =  $request->input('group_id');
-        $client->city_id =  $request->input('city_id');
-        $client->save();
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Client updated successfully'
+                ]);
+            }
 
-        return redirect("clients")->with('success', 'Client  updated successfully');
+            return redirect("clients")->with('success', 'Client updated successfully');
+        } catch (\Exception $e) {
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Something went wrong while updating client'
+                ]);
+            }
+            return redirect()->back()->with('error', 'Something went wrong while updating client');
+        }
     }
 
     public function destroy($id)
@@ -855,27 +877,26 @@ class ClientController extends Controller
             $client->file = $fil;
             $client->allusers = $userss;
 
+            // Generate action buttons HTML
+            $actionHtml = '';
+            if (auth()->user()->can('client')) {
+                $editUrl = "/clients/{$client->id}/edit";
+                $deleteUrl = "/clients/{$client->id}";
+                $actionHtml = '<div class="btn-group">
+                    <button type="button" class="btn btn-primary btn-rounded dropdown-toggle btn-xs p-2" 
+                        data-toggle="dropdown" aria-expanded="false">Action
+                        <span class="caret"></span><span class="sr-only">
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-right p-3" role="menu">
+                        <li class=""><a href="' . $editUrl . '" class="edit-client text-decoration-none"><i class="btn btn-sm btn-dark mdi mdi-table-edit p-1 m-1" title="Edit"></i> Edit</a> </li>
+                        <li class=""><a href="' . $deleteUrl . '" class="delete-client text-decoration-none"><i class="btn btn-sm btn-danger  mdi mdi-delete p-1 m-1" title="Delete"></i> Delete</a></li>
+                    </ul>
+                </div>';
+            }
+
             return Datatables::of(collect([$client]))
-                ->addColumn(
-                    'action',
-                    '<div class="btn-group">
-
-            <button type="button" class="btn btn-primary btn-rounded dropdown-toggle btn-xs p-2" 
-                data-toggle="dropdown" aria-expanded="false">Action
-                <span class="caret"></span><span class="sr-only">
-                </span>
-            </button>
-
-            <ul class="dropdown-menu dropdown-menu-right p-3" role="menu">
-              
-            @can("client")
-                <li class=""><a href="{{action(\'ClientController@edit\', [$id])}}" class="edit-client text-decoration-none"><i class="btn btn-sm btn-dark mdi mdi-table-edit p-1 m-1" title="Edit"></i> Edit</a> </li>
-            @endcan
-            @can("client")
-                <li class=""><a href="{{action(\'ClientController@destroy\', [$id])}}" class="delete-client text-decoration-none"><i class="btn btn-sm btn-danger  mdi mdi-delete p-1 m-1" title="Delete"></i> Delete</a></li>
-            @endcan     
-            </ul></div>'
-                )
+                ->addColumn('action', $actionHtml)
                 ->addColumn(
                     'comment',
                     '<div class="dropdown p-1">

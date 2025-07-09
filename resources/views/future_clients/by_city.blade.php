@@ -25,8 +25,11 @@
             type="future-clients"
         />
         
-        <!-- Future Client Details Datatable Section -->
-        <div id="future_client_details_section" style="display: none; position: relative;">
+        <!-- Edit Future Client Modal -->
+<div class="modal fade" id="edit_future_client_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel"></div>
+
+<!-- Future Client Details Datatable Section -->
+<div id="future_client_details_section" style="display: none; position: relative;">
             <div class="row">
                 <div class="col-lg-12 grid-margin stretch-card">
                     <div class="card">
@@ -332,9 +335,11 @@
                         allowClear: true
                     });
                     $('.dropdown-menu').on('click', function (event) {
-                        // Allow delete button clicks to work
+                        // Allow delete and edit button clicks to work
                         if (!$(event.target).hasClass('delete-future-client') && 
                             !$(event.target).closest('.delete-future-client').length &&
+                            !$(event.target).hasClass('edit-future-client') && 
+                            !$(event.target).closest('.edit-future-client').length &&
                             !$(event.target).hasClass('delete-comment') && 
                             !$(event.target).closest('.delete-comment').length &&
                             !$(event.target).hasClass('delete-respond') && 
@@ -500,6 +505,46 @@
                             }
                         }
                     });
+                }
+            });
+        });
+
+        // Handle edit future client modal
+        $(document).on('click', 'a.edit-future-client', function(e) {
+            e.preventDefault();   
+            var url = $(this).attr("href");
+
+            $.ajax({
+                url: url,
+                dataType: "html",
+                success: function(result) {  
+                    $('#edit_future_client_modal').html(result).modal('show'); 
+                },
+                error: function(xhr, status, error) { 
+                    console.error("AJAX Error: ", status, error);
+                }
+            });
+        });
+
+        // Handle edit future client form submission
+        $(document).on('submit', '#edit_future_client_form', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var data = form.serialize();
+
+            $.ajax({
+                method: "PUT",
+                url: form.attr("action"),
+                dataType: "json",
+                data: data,
+                success: function(result) {
+                    if (result.success == true) {
+                        $('#edit_future_client_modal').modal('hide');
+                        futureClientDetailsTable.ajax.reload();
+                        toastr.success(result.message);
+                    } else {
+                        toastr.error(result.message);
+                    }
                 }
             });
         });

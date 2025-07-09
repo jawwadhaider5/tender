@@ -482,6 +482,7 @@ class TenderController extends Controller
         $tender = Tender::find($id);
         $cities = City::orderBy('name', 'desc')->get();
         $clients = Client::orderBy('company_name', 'asc')->get();
+        $users = User::all();
 
         $tender['start_date'] = Carbon::parse($tender['start_date'])->format('Y-m-d');
         $tender['close_date'] = Carbon::parse($tender['close_date'])->format('Y-m-d');
@@ -489,7 +490,7 @@ class TenderController extends Controller
         $tender['submit_date'] = Carbon::parse($tender['submit_date'])->format('Y-m-d');
         $tender['year'] = Carbon::parse($tender['year'])->format('Y-m-d');
 
-        return view('tenders.edit_modal', compact('tender', 'cities', 'clients'))->render();
+        return view('tenders.edit_modal', compact('tender', 'cities', 'clients', 'users'))->render();
     }
 
     public function update(Request $request, $id)
@@ -505,7 +506,7 @@ class TenderController extends Controller
 
         $input = $request->only([
             'client_id', 'tender_number', 'city_id', 'status', 'year', 'description', 'assigned_number',
-            'start_date', 'close_date', 'announce_date', 'submit_date', 'period', 'term', 'amount'
+            'start_date', 'close_date', 'announce_date', 'submit_date', 'period', 'term', 'amount', 'user_id'
         ]);
 
         $input['year'] = Carbon::createFromFormat('Y-m-d', $input['year'])->setTimeFrom(Carbon::now());
@@ -525,6 +526,7 @@ class TenderController extends Controller
         $tender->period =  $request->input('period');
         $tender->term =  $request->input('term');
         $tender->amount =  $request->input('amount');
+        $tender->user_id =  $request->input('user_id');
         $tender->year =  Carbon::createFromFormat('Y-m-d', $request->input('year'))->setTimeFrom(Carbon::now());
         $tender->start_date =  Carbon::createFromFormat('Y-m-d', $request->input('start_date'))->setTimeFrom(Carbon::now());
         $tender->close_date =  Carbon::createFromFormat('Y-m-d', $request->input('close_date'))->setTimeFrom(Carbon::now());
@@ -871,7 +873,7 @@ class TenderController extends Controller
             // Generate action buttons
             $actionHtml = '';
             if (auth()->user()->can('tender')) {
-                $actionHtml = '<a href="/tenders/' . $tender->id . '/edit" class="edit-tender btn btn-dark mdi mdi-table-edit p-1 m-1"></a>
+                $actionHtml = '<a href="/tenders/' . $tender->id . '/edit" class="edit-tender2 btn btn-dark mdi mdi-table-edit p-1 m-1"></a>
                                <a href="/tenders/' . $tender->id . '" class="delete-tender btn btn-danger mdi mdi-delete p-1 m-1"></a>';
             }
 

@@ -25,8 +25,11 @@
             type="clients"
         />
 
-        <!-- Client Details Datatable Section -->
-        <div id="client_details_section" style="display: none; position: relative;">
+        <!-- Edit Client Modal -->
+<div class="modal fade" id="edit_client_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel"></div>
+
+<!-- Client Details Datatable Section -->
+<div id="client_details_section" style="display: none; position: relative;">
             <div class="row">
                 <div class="col-lg-12 grid-margin stretch-card">
                     <div class="card">
@@ -159,9 +162,11 @@
                         allowClear: true
                     });
                     $('.dropdown-menu').on('click', function (event) {
-                        // Allow delete button clicks to work
+                        // Allow delete and edit button clicks to work
                         if (!$(event.target).hasClass('delete-client') && 
                             !$(event.target).closest('.delete-client').length &&
+                            !$(event.target).hasClass('edit-client') && 
+                            !$(event.target).closest('.edit-client').length &&
                             !$(event.target).hasClass('delete-comment') && 
                             !$(event.target).closest('.delete-comment').length &&
                             !$(event.target).hasClass('delete-respond') && 
@@ -327,6 +332,46 @@
                             }
                         }
                     });
+                }
+            });
+        });
+
+        // Handle edit client modal
+        $(document).on('click', 'a.edit-client', function(e) {
+            e.preventDefault();   
+            var url = $(this).attr("href");
+
+            $.ajax({
+                url: url,
+                dataType: "html",
+                success: function(result) {  
+                    $('#edit_client_modal').html(result).modal('show'); 
+                },
+                error: function(xhr, status, error) { 
+                    console.error("AJAX Error: ", status, error);
+                }
+            });
+        });
+
+        // Handle edit client form submission
+        $(document).on('submit', '#edit_client_form', function(e) {
+            e.preventDefault();
+            var form = $(this);
+            var data = form.serialize();
+
+            $.ajax({
+                method: "PUT",
+                url: form.attr("action"),
+                dataType: "json",
+                data: data,
+                success: function(result) {
+                    if (result.success == true) {
+                        $('#edit_client_modal').modal('hide');
+                        clientDetailsTable.ajax.reload();
+                        toastr.success(result.message);
+                    } else {
+                        toastr.error(result.message);
+                    }
                 }
             });
         });

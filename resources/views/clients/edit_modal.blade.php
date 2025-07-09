@@ -9,8 +9,8 @@
         <div class="modal-body">
 
 
-            {!! Form::open(['url' => action('ClientController@update',[$client->id]),'method' => 'PUT',
-            'id' => 'client_add_form','class' => '', 'enctype' => 'multipart/form-data']) !!}
+            {!! Form::open(['url' => route('clients.update', $client->id),'method' => 'PUT',
+            'id' => 'edit_client_form','class' => '', 'enctype' => 'multipart/form-data']) !!}
             <input type="hidden" id="client_id" value="{{ $client->id }}">
 
 
