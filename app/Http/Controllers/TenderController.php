@@ -268,8 +268,12 @@ class TenderController extends Controller
                 $time = $request->get('time');
                 $assigned_user_id = $request->get('assigned_user_id');
                 
-                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)
-                    ->setTimeFrom(Carbon::createFromFormat('H:i', $time));
+                // Combine date and time properly
+                if ($time) {
+                    $formattedDateTime = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $time);
+                } else {
+                    $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)->setTimeFrom(Carbon::now());
+                }
 
                 $tender = TenderRespond::create([
                     "tender_id" => $tender_id,
@@ -277,7 +281,6 @@ class TenderController extends Controller
                     "subject" => $subject,
                     "assigned_user_id" => $assigned_user_id,
                     "date" => $formattedDateTime,
-                    "time" => $time,
                     "text" => $text,
                 ]);
 
@@ -304,8 +307,9 @@ class TenderController extends Controller
                 $subject = $request->get('subject');
                 $date = $request->get('date');
                 $assigned_user_id = $request->get('assigned_user_id');
-                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)
-                    ->setTimeFrom(Carbon::now());
+                
+                // For non-AJAX requests, use current time
+                $formattedDateTime = Carbon::createFromFormat('Y-m-d', $date)->setTimeFrom(Carbon::now());
 
                 $tender = TenderRespond::create([
                     "tender_id" => $tender_id,
