@@ -332,7 +332,17 @@
                         allowClear: true
                     });
                     $('.dropdown-menu').on('click', function (event) {
-                        event.stopPropagation();
+                        // Allow delete button clicks to work
+                        if (!$(event.target).hasClass('delete-future-client') && 
+                            !$(event.target).closest('.delete-future-client').length &&
+                            !$(event.target).hasClass('delete-comment') && 
+                            !$(event.target).closest('.delete-comment').length &&
+                            !$(event.target).hasClass('delete-respond') && 
+                            !$(event.target).closest('.delete-respond').length &&
+                            !$(event.target).hasClass('delete-file') && 
+                            !$(event.target).closest('.delete-file').length) {
+                            event.stopPropagation();
+                        }
                     });
                 }
             });
@@ -412,6 +422,7 @@
         // Handle delete actions
         $(document).on('click', 'a.delete-comment', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             swal({
                 title: "Do you want to delete comment ?",
                 icon: "warning",
@@ -439,6 +450,7 @@
         
         $(document).on('click', 'a.delete-respond', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             swal({
                 title: "Do you want to delete respond ?",
                 icon: "warning",
@@ -466,6 +478,7 @@
         
         $(document).on('click', 'a.delete-file', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             swal({
                 title: "Do you want to delete file ?",
                 icon: "warning",
@@ -491,31 +504,82 @@
             });
         });
 
-        $(document).on('click', '#create_tender_type', function () { 
-            $('#add_tender_type_modal').modal('show'); 
-            $("#tender_type_name_box").val(""); 
+        // Delete future client handler (for the Action column delete button)
+        $(document).on('click', 'a.delete-future-client', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            swal({
+                title: "Do you want to delete future client ?",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+            }).then((willDelete) => {
+                if (willDelete) {
+                    var href = $(this).attr('href'); 
+                    $.ajax({
+                        method: "DELETE",
+                        url: href,
+                        dataType: "json",
+                        success: function(result) {
+                            if (result.success == true) {
+                                swal("Deleted!", "Future client is successfully deleted.", "success");
+                                
+                                // Hide the details section
+                                $('#future_client_details_section').hide();
+                                if (futureClientDetailsTable) {
+                                    futureClientDetailsTable.destroy();
+                                    futureClientDetailsTable = null;
+                                }
+                                
+                                // Refresh the main city table
+                                try {
+                                    var mainTable = $('#future_clients_by_city_table').DataTable();
+                                    mainTable.ajax.reload();
+                                } catch (e) {
+                                    console.log('Error reloading table:', e);
+                                    // Fallback: full page reload
+                                    setTimeout(function() {
+                                        location.reload();
+                                    }, 1000);
+                                }
+                            } else {
+                                swal("Error!", result.message || "Something went wrong!", "error");
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            swal("Error!", "Error deleting future client: " + error, "error");
+                        }
+                    });
+                }
+            });
         });
-        $('#add_tender_type_form').submit(function (e) { 
-            e.preventDefault(); 
-            var data = $("#add_tender_type_form").serialize();  
+
+        $(document).on('click', '#create_tender_type', function () {
+            $('#add_tender_type_modal').modal('show');
+            $("#tender_type_name_box").val("");
+        });
+        $('#add_tender_type_form').submit(function (e) {
+            e.preventDefault();
+            var data = $("#add_tender_type_form").serialize();
             $.ajax({
                 method: "POST",
-                url: $("#add_tender_type_form").attr("action"), 
+                url: $("#add_tender_type_form").attr("action"),
                 dataType: "json",
                 data: data,
                 success: function (result) {
                     if (result.success == true) {
                         toastr.success("Tender Type Created successfully");
-                        $('#add_tender_type_modal').modal('hide');  
+                        $('#add_tender_type_modal').modal('hide');
                         var newOption = new Option(result.tender_type.name, result.tender_type.id, true, true);
                         $('#tender_type_id').append(newOption).trigger('change');
                     } else {
                         toastr.error("Something went wrong!");
-                        $('#add_tender_type_modal').modal('hide'); 
+                        $('#add_tender_type_modal').modal('hide');
                     }
                 }
-            }); 
-        }); 
+            });
+        });
         $('#tender_type_id').select2({
             width: '100%',
             dropdownParent: $('#future_client_create_modal'),
@@ -555,7 +619,7 @@
         });
     });
     </script>
-    
+
     <style>
     .code-link, .city-link, .data-link {
         color: #007bff;
@@ -578,19 +642,19 @@
     .data-container {
         min-height: 50px;
     }
-    
+
     /* Ensure tables take full width */
     .table-responsive {
         width: 100%;
     }
-    
+
     .table {
         width: 100% !important;
     }
-    
+
     /* Ensure proper spacing between sections */
     #future_client_details_section {
         margin-top: 20px;
     }
     </style>
-@endsection 
+@endsection

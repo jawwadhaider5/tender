@@ -106,6 +106,8 @@ Route::group(['middleware' => ['auth']], function () {
     Route::get('/mark-as-read', [TenderController::class, 'markAsRead'])->name('mark-as-read');
 
     Route::resource('/tenders', TenderController::class);
+    Route::get('/tenders-by-city', 'TenderController@tendersByCity')->name('tenders-by-city');
+    Route::get('/tender-details/{id}', 'TenderController@getTenderDetails')->name('tender-details');
 
 
     //futre client

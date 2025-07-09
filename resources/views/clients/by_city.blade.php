@@ -71,6 +71,12 @@
     <script>
     $(document).ready(function() {
         var clientDetailsTable = null;
+        var mainCityTable = null;
+        
+        // Store reference to main table after it's initialized
+        setTimeout(function() {
+            mainCityTable = $('#clients_by_city_table').DataTable();
+        }, 1000);
 
         // Handle client click from city-based table
         $(document).on('client-clicked', function(e, link) {
@@ -153,7 +159,17 @@
                         allowClear: true
                     });
                     $('.dropdown-menu').on('click', function (event) {
-                        event.stopPropagation();
+                        // Allow delete button clicks to work
+                        if (!$(event.target).hasClass('delete-client') && 
+                            !$(event.target).closest('.delete-client').length &&
+                            !$(event.target).hasClass('delete-comment') && 
+                            !$(event.target).closest('.delete-comment').length &&
+                            !$(event.target).hasClass('delete-respond') && 
+                            !$(event.target).closest('.delete-respond').length &&
+                            !$(event.target).hasClass('delete-file') && 
+                            !$(event.target).closest('.delete-file').length) {
+                            event.stopPropagation();
+                        }
                     });
                 }
             });
@@ -233,6 +249,7 @@
         // Handle delete actions
         $(document).on('click', 'a.delete-comment', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             swal({
                 title: "Do you want to delete comment ?",
                 icon: "warning",
@@ -260,6 +277,7 @@
 
         $(document).on('click', 'a.delete-respond', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             swal({
                 title: "Do you want to delete respond ?",
                 icon: "warning",
@@ -287,6 +305,7 @@
 
         $(document).on('click', 'a.delete-file', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             swal({
                 title: "Do you want to delete file ?",
                 icon: "warning",
@@ -306,6 +325,55 @@
                             } else {
                                 toastr.error("Something went wrong!");
                             }
+                        }
+                    });
+                }
+            });
+        });
+
+        // Delete client handler (for the Action column delete button)
+        $(document).on('click', 'a.delete-client', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            swal({
+                title: "Do you want to delete client ?",
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+            }).then((willDelete) => {
+                if (willDelete) {
+                    var href = $(this).attr('href'); 
+                    $.ajax({
+                        method: "DELETE",
+                        url: href,
+                        dataType: "json",
+                        success: function(result) {
+                            if (result.success == true) {
+                                swal("Deleted!", "Client is successfully deleted.", "success");
+                                
+                                // Hide the details section
+                                $('#client_details_section').hide();
+                                if (clientDetailsTable) {
+                                    clientDetailsTable.destroy();
+                                    clientDetailsTable = null;
+                                }
+                                
+                                // Refresh the main city table
+                                if (mainCityTable) {
+                                    mainCityTable.ajax.reload();
+                                } else {
+                                    // Fallback: reload the page if table reference is not available
+                                    setTimeout(function() {
+                                        location.reload();
+                                    }, 1000);
+                                }
+                            } else {
+                                swal("Error!", result.message || "Something went wrong!", "error");
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            swal("Error!", "Error deleting client: " + error, "error");
                         }
                     });
                 }

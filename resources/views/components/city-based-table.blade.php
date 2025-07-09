@@ -133,8 +133,8 @@ $(document).ready(function() {
         e.preventDefault();
         var link = $(this).attr('href');
         
-        // For clients and future-clients types, let the parent page handle the click
-        if ('{{ $type }}' === 'clients' || '{{ $type }}' === 'future-clients') {
+        // For clients, future-clients, and tenders types, let the parent page handle the click
+        if ('{{ $type }}' === 'clients' || '{{ $type }}' === 'future-clients' || '{{ $type }}' === 'tenders') {
             // Trigger a custom event that the parent page can listen to
             $(document).trigger('client-clicked', [link]);
         } else {

@@ -26,9 +26,9 @@
         </li>
         @endcan
         @canany(['tender'])
-        <li class="nav-item {{ $request->segment(1) == 'tenders' && $request->segment(2) == null ? 'active' : '' }}">
-            <a class="nav-link" href="/tenders">
-                <i class="menu-icon mdi mdi-view-list"></i>
+        <li class="nav-item {{ $request->segment(1) == 'tenders-by-city' ? 'active' : '' }}">
+            <a class="nav-link" href="/tenders-by-city">
+                <i class="menu-icon mdi mdi-city"></i>
                 <span class="menu-title">Tenders</span>
             </a>
         </li>
@@ -139,14 +139,7 @@
             </a>
         </li>
         @endcan
-        @canany(['tenders-by-city'])
-        <li class="nav-item {{ $request->segment(1) == 'tenders-by-city' ? 'active' : '' }}">
-            <a class="nav-link" href="/tenders-by-city">
-                <i class="menu-icon mdi mdi-city"></i>
-                <span class="menu-title">Tenders by City</span>
-            </a>
-        </li>
-        @endcan
+
 
     </ul>
 </nav>

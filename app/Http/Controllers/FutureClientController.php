@@ -661,33 +661,39 @@ class FutureClientController extends Controller
     public function futureClientsByCity()
     {
         if (request()->ajax()) {
-            $cities = City::with(['clients' => function($query) {
-                $query->select('clients.id', 'clients.company_name', 'clients.city_id')
-                      ->join('future_clients', 'clients.id', '=', 'future_clients.client_id')
-                      ->select('clients.id', 'clients.company_name', 'clients.city_id', 'future_clients.id as future_client_id');
-            }])
-            ->select('id', 'name', 'code')
-            ->get()
-            ->groupBy('code')
-            ->map(function($cities) {
+            // Get all future clients with their client and city relationships
+            $futureClients = FutureClient::with(['client.city'])
+                ->select('id', 'client_id')
+                ->get();
+            
+            // Group by city code
+            $citiesData = $futureClients->groupBy(function($futureClient) {
+                return $futureClient->client->city->code ?? 'Unknown';
+            })->map(function($futureClientsInCode, $code) {
+                // Get unique cities for this code
+                $cities = $futureClientsInCode->groupBy(function($futureClient) {
+                    return $futureClient->client->city->id ?? 0;
+                })->map(function($futureClientsInCity, $cityId) {
+                    $firstFutureClient = $futureClientsInCity->first();
+                    return [
+                        'id' => $cityId,
+                        'name' => $firstFutureClient->client->city->name ?? 'Unknown',
+                        'clients' => $futureClientsInCity->map(function($futureClient) {
+                            return [
+                                'id' => $futureClient->id,
+                                'name' => $futureClient->client->company_name
+                            ];
+                        })->values()
+                    ];
+                })->values();
+                
                 return [
-                    'code' => $cities->first()->code,
-                    'cities' => $cities->map(function($city) {
-                        return [
-                            'id' => $city->id,
-                            'name' => $city->name,
-                            'clients' => $city->clients->map(function($client) {
-                                return [
-                                    'id' => $client->future_client_id,
-                                    'name' => $client->company_name
-                                ];
-                            })
-                        ];
-                    })
+                    'code' => $code,
+                    'cities' => $cities
                 ];
             })->values();
 
-            return response()->json(['data' => $cities]);
+            return response()->json(['data' => $citiesData]);
         }
 
         // Pass required variables for the modal form

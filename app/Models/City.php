@@ -24,6 +24,11 @@ class City extends Model
         return $this->hasMany(Client::class, 'city_id');
     }
 
+    public function tenders()
+    {
+        return $this->hasMany(Tender::class, 'city_id');
+    }
+
     public function future_clients()
     {
         return $this->hasMany(FutureClient::class, 'city_id');
