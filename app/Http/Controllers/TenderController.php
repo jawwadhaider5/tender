@@ -682,27 +682,49 @@ class TenderController extends Controller
     public function tendersByCity()
     {
         if (request()->ajax()) {
-            $cities = City::with(['tenders.client'])->get()
-                ->groupBy('code')
-                ->map(function($cities) {
-                    return [
-                        'code' => $cities->first()->code,
-                        'cities' => $cities->map(function($city) {
-                            return [
-                                'id' => $city->id,
-                                'name' => $city->name,
-                                'clients' => $city->tenders->map(function($tender) {
-                                    return [
-                                        'id' => $tender->id,
-                                        'name' => $tender->client->company_name . ' - ' . $tender->tender_number
-                                    ];
-                                })
-                            ];
-                        })
+            $cities = City::with(['tenders.client.group'])->get()->groupBy('code');
+            
+            $data = [];
+            foreach ($cities as $code => $cityGroup) {
+                $cityData = [];
+                
+                foreach ($cityGroup as $city) {
+                    // Group tenders by their client's group_id within this city
+                    $tendersByGroup = $city->tenders->groupBy('client.group_id');
+                    $groups = [];
+                    
+                    foreach ($tendersByGroup as $groupId => $tenders) {
+                        $groupName = 'No Group';
+                        if ($groupId && $tenders->first()->client->group) {
+                            $groupName = $tenders->first()->client->group->name;
+                        }
+                        
+                        $groups[] = [
+                            'id' => $groupId ?: 'no-group',
+                            'name' => $groupName,
+                            'clients' => $tenders->map(function($tender) {
+                                return [
+                                    'id' => $tender->id,
+                                    'name' => $tender->client->company_name . ' - ' . $tender->tender_number
+                                ];
+                            })->toArray()
+                        ];
+                    }
+                    
+                    $cityData[] = [
+                        'id' => $city->id,
+                        'name' => $city->name,
+                        'groups' => $groups
                     ];
-                })->values();
+                }
+                
+                $data[] = [
+                    'code' => $code,
+                    'cities' => $cityData
+                ];
+            }
 
-            return response()->json(['data' => $cities]);
+            return response()->json(['data' => $data]);
         }
 
         // Pass required variables for the modal form

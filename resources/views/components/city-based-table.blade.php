@@ -23,6 +23,7 @@
                             <tr class="bg-success text-white">
                                 <th>City Code</th>
                                 <th>City Name</th>
+                                <th>Group</th>
                                 <th>Data</th>
                             </tr>
                         </thead>
@@ -72,29 +73,53 @@ $(document).ready(function() {
             {
                 data: 'cities',
                 render: function(data, type, row) {
-                    var html = '<div class="data-container">';
+                    var html = '<div class="group-container">';
                     data.forEach(function(city) {
-                        html += '<div class="data-list" id="data-' + city.id + '" style="display: none;">';
-                        if (city.clients && city.clients.length > 0) {
-                            city.clients.forEach(function(item) {
-                                var link = '';
-                                switch('{{ $type }}') {
-                                    case 'clients':
-                                        link = '/clients?highlight=' + item.id;
-                                        break;
-                                    case 'tenders':
-                                        link = '/tenders?highlight=' + item.id;
-                                        break;
-                                    case 'future-clients':
-                                        link = '/future-clients?highlight=' + item.id;
-                                        break;
+                        html += '<div class="group-links" id="groups-' + city.id + '" style="display: none;">';
+                        if (city.groups && city.groups.length > 0) {
+                            city.groups.forEach(function(group, index) {
+                                html += '<a href="#" class="group-link" data-group-id="' + group.id + '" data-city-id="' + city.id + '">' + group.name + '</a>';
+                                if (index < city.groups.length - 1) {
+                                    html += '<br>';
                                 }
-                                html += '<div class="data-item"><a href="' + link + '" class="data-link">' + item.name + '</a></div>';
                             });
                         } else {
-                            html += '<div class="data-item">No data found</div>';
+                            html += '<div class="group-item">No groups found</div>';
                         }
                         html += '</div>';
+                    });
+                    html += '</div>';
+                    return html;
+                }
+            },
+            {
+                data: 'cities',
+                render: function(data, type, row) {
+                    var html = '<div class="data-container">';
+                    data.forEach(function(city) {
+                        city.groups.forEach(function(group) {
+                            html += '<div class="data-list" id="data-' + group.id + '-' + city.id + '" style="display: none;">';
+                            if (group.clients && group.clients.length > 0) {
+                                group.clients.forEach(function(item) {
+                                    var link = '';
+                                    switch('{{ $type }}') {
+                                        case 'clients':
+                                            link = '/clients?highlight=' + item.id;
+                                            break;
+                                        case 'tenders':
+                                            link = '/tenders?highlight=' + item.id;
+                                            break;
+                                        case 'future-clients':
+                                            link = '/future-clients?highlight=' + item.id;
+                                            break;
+                                    }
+                                    html += '<div class="data-item"><a href="' + link + '" class="data-link">' + item.name + '</a></div>';
+                                });
+                            } else {
+                                html += '<div class="data-item">No data found</div>';
+                            }
+                            html += '</div>';
+                        });
                     });
                     html += '</div>';
                     return html;
@@ -106,26 +131,46 @@ $(document).ready(function() {
         lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
     });
 
-    // Handle code click
+    // Handle code click - shows cities
     $('#{{ $tableId }}').on('click', '.code-link', function(e) {
         e.preventDefault();
         var code = $(this).data('code');
         var row = $(this).closest('tr');
 
+        // Hide all group and data containers in this row
+        row.find('.group-links').hide();
+        row.find('.data-list').hide();
+
         // Toggle the city links in the same row
         row.find('.city-links').slideToggle();
     });
 
-    // Handle city name click
+    // Handle city name click - shows groups
     $('#{{ $tableId }}').on('click', '.city-link', function(e) {
         e.preventDefault();
         var cityId = $(this).data('city-id');
+        var row = $(this).closest('tr');
+
+        // Hide all group links and data lists in the same row
+        row.find('.group-links').hide();
+        row.find('.data-list').hide();
+
+        // Show the clicked city's groups
+        $('#groups-' + cityId).slideToggle();
+    });
+
+    // Handle group click - shows data
+    $('#{{ $tableId }}').on('click', '.group-link', function(e) {
+        e.preventDefault();
+        var groupId = $(this).data('group-id');
+        var cityId = $(this).data('city-id');
+        var row = $(this).closest('tr');
 
         // Hide all data lists in the same row
-        $(this).closest('tr').find('.data-list').hide();
+        row.find('.data-list').hide();
 
-        // Show the clicked city's data
-        $('#data-' + cityId).slideToggle();
+        // Show the clicked group's data
+        $('#data-' + groupId + '-' + cityId).slideToggle();
     });
     
     // Handle client/data item click
@@ -146,15 +191,15 @@ $(document).ready(function() {
 </script>
 
 <style>
-.code-link, .city-link, .data-link {
+.code-link, .city-link, .group-link, .data-link {
     color: #007bff;
     text-decoration: none;
     cursor: pointer;
 }
-.code-link:hover, .city-link:hover, .data-link:hover {
+.code-link:hover, .city-link:hover, .group-link:hover, .data-link:hover {
     text-decoration: underline;
 }
-.city-links {
+.city-links, .group-links {
     line-height: 1.8;
 }
 .data-item {
@@ -164,8 +209,13 @@ $(document).ready(function() {
 .data-item:last-child {
     border-bottom: none;
 }
-.data-container {
+.data-container, .group-container {
     min-height: 50px;
+}
+.group-item {
+    padding: 5px 0;
+    color: #6c757d;
+    font-style: italic;
 }
 </style>
 @endpush

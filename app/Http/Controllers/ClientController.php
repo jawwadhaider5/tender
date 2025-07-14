@@ -687,22 +687,39 @@ class ClientController extends Controller
         $user->userdetail;
 
         if (request()->ajax()) {
-            $cities = City::with('clients')->get()->groupBy('code');
+            $cities = City::with(['clients.group'])->get()->groupBy('code');
             
             $data = [];
             foreach ($cities as $code => $cityGroup) {
                 $cityData = [];
                 
                 foreach ($cityGroup as $city) {
+                    // Group clients by their group_id within this city
+                    $clientsByGroup = $city->clients->groupBy('group_id');
+                    $groups = [];
+                    
+                    foreach ($clientsByGroup as $groupId => $clients) {
+                        $groupName = 'No Group';
+                        if ($groupId && $clients->first()->group) {
+                            $groupName = $clients->first()->group->name;
+                        }
+                        
+                        $groups[] = [
+                            'id' => $groupId ?: 'no-group',
+                            'name' => $groupName,
+                            'clients' => $clients->map(function($client) {
+                                return [
+                                    'id' => $client->id,
+                                    'name' => $client->company_name
+                                ];
+                            })->toArray()
+                        ];
+                    }
+                    
                     $cityData[] = [
                         'id' => $city->id,
                         'name' => $city->name,
-                        'clients' => $city->clients->map(function($client) {
-                            return [
-                                'id' => $client->id,
-                                'name' => $client->company_name
-                            ];
-                        })->toArray()
+                        'groups' => $groups
                     ];
                 }
                 

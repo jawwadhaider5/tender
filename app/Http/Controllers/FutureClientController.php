@@ -669,8 +669,8 @@ class FutureClientController extends Controller
     public function futureClientsByCity()
     {
         if (request()->ajax()) {
-            // Get all future clients with their client and city relationships
-            $futureClients = FutureClient::with(['client.city'])
+            // Get all future clients with their client, city, and group relationships
+            $futureClients = FutureClient::with(['client.city', 'client.group'])
                 ->select('id', 'client_id')
                 ->get();
             
@@ -682,16 +682,36 @@ class FutureClientController extends Controller
                 $cities = $futureClientsInCode->groupBy(function($futureClient) {
                     return $futureClient->client->city->id ?? 0;
                 })->map(function($futureClientsInCity, $cityId) {
+                    // Group future clients by their client's group within this city
+                    $futureClientsByGroup = $futureClientsInCity->groupBy(function($futureClient) {
+                        return $futureClient->client->group_id ?? 'no-group';
+                    });
+                    
+                    $groups = [];
+                    foreach ($futureClientsByGroup as $groupId => $futureClientsInGroup) {
+                        $groupName = 'No Group';
+                        $firstFutureClient = $futureClientsInGroup->first();
+                        if ($groupId !== 'no-group' && $firstFutureClient->client->group) {
+                            $groupName = $firstFutureClient->client->group->name;
+                        }
+                        
+                        $groups[] = [
+                            'id' => $groupId,
+                            'name' => $groupName,
+                            'clients' => $futureClientsInGroup->map(function($futureClient) {
+                                return [
+                                    'id' => $futureClient->id,
+                                    'name' => $futureClient->client->company_name
+                                ];
+                            })->values()->toArray()
+                        ];
+                    }
+                    
                     $firstFutureClient = $futureClientsInCity->first();
                     return [
                         'id' => $cityId,
                         'name' => $firstFutureClient->client->city->name ?? 'Unknown',
-                        'clients' => $futureClientsInCity->map(function($futureClient) {
-                            return [
-                                'id' => $futureClient->id,
-                                'name' => $futureClient->client->company_name
-                            ];
-                        })->values()
+                        'groups' => $groups
                     ];
                 })->values();
                 
