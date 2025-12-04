@@ -156,10 +156,24 @@
                     { data: 'action', name: 'action' }
                 ],
                 drawCallback: function(settings) {
-                    $('.client_response_users').select2({
-                        width: '100%',
-                        placeholder: "Assign to users",
-                        allowClear: true
+                    // Initialize Select2 with dropdown parent set to the dropdown container
+                    $('.client_response_users').each(function() {
+                        var $select = $(this);
+                        // Find the closest dropdown container (parent of dropdown-menu)
+                        var $dropdownContainer = $select.closest('.dropdown');
+                        if ($dropdownContainer.length === 0) {
+                            $dropdownContainer = $select.closest('.dropdown-menu').parent();
+                        }
+                        // Destroy existing Select2 instance if any
+                        if ($select.hasClass('select2-hidden-accessible')) {
+                            $select.select2('destroy');
+                        }
+                        $select.select2({
+                            width: '100%',
+                            placeholder: "Assign to users",
+                            allowClear: true,
+                            dropdownParent: $dropdownContainer.length ? $dropdownContainer : $('#client_details_section')
+                        });
                     });
                     $('.dropdown-menu').on('click', function (event) {
                         // Allow delete and edit button clicks to work
@@ -462,6 +476,16 @@
     /* Ensure proper spacing between sections */
     #client_details_section {
         margin-top: 20px;
+    }
+    
+    /* Ensure Select2 dropdown stays within dropdown menu */
+    .dropdown-menu .select2-container {
+        position: relative !important;
+    }
+    
+    .dropdown-menu .select2-dropdown {
+        position: absolute !important;
+        z-index: 9999 !important;
     }
     </style>
 @endsection

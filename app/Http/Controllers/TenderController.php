@@ -286,9 +286,21 @@ class TenderController extends Controller
 
                 $dt = $tender->date->format('M, d Y H:i:s A');
 
-                if ($assigned_user_id) {
-                    foreach ($assigned_user_id as $uid) {
-                        User::find($uid)->notify(new NotificationsTenderRespond($dt, $user->name, $tender->subject, $tender->text));
+                // Send notifications to all assigned users (wrap in try-catch so email failures don't break the API)
+                if (is_array($assigned_user_id) && !empty($assigned_user_id)) {
+                    foreach ($assigned_user_id as $userId) {
+                        if ($userId && $userId != '-' && $userId != '') {
+                            try {
+                                $assignedUser = User::find($userId);
+                                if ($assignedUser) {
+                                    $assignedUser->notify(new NotificationsTenderRespond($dt, $user->name, $tender->subject, $tender->text));
+                                }
+                            } catch (\Throwable $notificationException) {
+                                // Log notification error but don't break the API
+                                Log::warning("Failed to send notification to user ID {$userId} for tender response ID {$tender->id}: " . $notificationException->getMessage());
+                                // Continue to next user - don't re-throw exception
+                            }
+                        }
                     }
                 }
 
@@ -322,7 +334,23 @@ class TenderController extends Controller
 
                 $dt = $tender->date->format('M, d Y H:i:s A');
 
-                User::find($tender->assigned_user_id)->notify(new NotificationsTenderRespond($dt, $user->name, $tender->subject, $tender->text));
+                // Send notifications to all assigned users (wrap in try-catch so email failures don't break the API)
+                if (is_array($assigned_user_id) && !empty($assigned_user_id)) {
+                    foreach ($assigned_user_id as $userId) {
+                        if ($userId && $userId != '-' && $userId != '') {
+                            try {
+                                $assignedUser = User::find($userId);
+                                if ($assignedUser) {
+                                    $assignedUser->notify(new NotificationsTenderRespond($dt, $user->name, $tender->subject, $tender->text));
+                                }
+                            } catch (\Throwable $notificationException) {
+                                // Log notification error but don't break the API
+                                Log::warning("Failed to send notification to user ID {$userId} for tender response ID {$tender->id}: " . $notificationException->getMessage());
+                                // Continue to next user - don't re-throw exception
+                            }
+                        }
+                    }
+                }
 
                 $output = array('success' => true, 'message' => "Responded successfully");
             } catch (\Exception $e) {
@@ -783,52 +811,66 @@ class TenderController extends Controller
             $commentsHtml .= '</ul></div>';
 
             // Generate responses HTML
-            $responsesHtml = '<div class="dropdown p-1">
+            $users = User::all();
+            $usersOptions = '';
+            foreach ($users as $user) {
+                $usersOptions .= '<option value="' . $user->id . '">' . $user->name . '</option>';
+            }
+
+            $responsesHtml = '<div class="dropdown p-1" style="position: relative;">
                 <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     ' . ($tender->responds->count() > 0 ? $tender->responds->first()->text : 'No Responds yet') . '
                 </button>
-                <ul class="dropdown-menu p-1 bg-light" style="width:650px">
+                <ul class="dropdown-menu p-2" aria-labelledby="dropdownMenuButton1" style="width:650px; max-width:90vw;">
                     <li>
-                        <form method="POST" action="/post-tender-responds">
+                        <form method="POST" action="/post-tender-responds" class="mb-2">
                             <input type="hidden" name="_token" value="' . csrf_token() . '" />
-                            <input type="hidden" name="tender_id" value="' . $tender->id . '">
-                            <div class="row">
-                                <div class="form-group row mb-1">
-                                    <div class="col-sm-2">
-                                        <input type="date" name="date" class="form-control" required>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <input type="time" name="time" class="form-control" required>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <select name="subject" class="form-control" required>
-                                            <option value="">Select Subject</option>
-                                            <option value="Subject One">Subject One</option>
-                                            <option value="Subject Two">Subject Two</option>
-                                            <option value="Subject Three">Subject Three</option>
-                                            <option value="Subject Four">Subject Four</option>
+                            <input type="hidden" name="tender_id" value="' . $tender->id . '"> 
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small mb-1">Date</label>
+                                    <input type="date" name="date" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small mb-1">Time</label>
+                                    <input type="time" name="time" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small mb-1">Subject</label>
+                                    <select name="subject" class="form-control form-control-sm" required>
+                                        <option value="-">Select Subject</option>
+                                        <option value="Subject One">Subject One</option>
+                                        <option value="Subject Two">Subject Two</option>
+                                        <option value="Subject Three">Subject Three</option>
+                                        <option value="Subject Four">Subject Four</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-7">
+                                    <label class="form-label small mb-1">Response</label>
+                                    <input type="text" name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control form-control-sm" required>
+                                    <div id="text-error" class="alert alert-danger mt-1 p-1" style="display: none; font-size: 11px;"></div>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small mb-1">Assign To</label>
+                                    <div style="position: relative;">
+                                        <select name="assigned_user_id[]" class="form-control form-control-sm select2 tender_response_users" multiple style="width: 100% !important;">
+                                            ' . $usersOptions . '
                                         </select>
-                                    </div>
-                                    <div class="col-sm-3">
-                                        <input type="text" name="text" placeholder="Enter Your respond..." class="form-control" required>
-                                    </div>
-                                    <div class="col-sm-2">
-                                        <select name="assigned_user_id[]" class="form-control tender_response_users" multiple>';
-
-            $users = User::all();
-            foreach ($users as $user) {
-                $responsesHtml .= '<option value="' . $user->id . '">' . $user->name . '</option>';
-            }
-
-            $responsesHtml .= '</select>
-                                    </div>
-                                    <div class="col-sm-1">
-                                        <button type="submit" class="btn btn-primary me-2 float-end">Respond</button>
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-12 text-end">
+                                    <button type="submit" class="btn btn-sm btn-primary" id="submit-tender-form">Respond</button>
+                                </div>
+                            </div>
                         </form>
-                    </li>';
+                    </li>
+                    <li class="divider" style="border-top: 1px solid #ddd; margin: 8px 0;"></li>
+                    <li>
+                        <div class="px-2" style="max-height: 300px; overflow-y: auto;">';
 
             foreach ($tender->responds as $respond) {
                 $assignedUsers = "";
@@ -843,7 +885,7 @@ class TenderController extends Controller
                     <div class="row">
                         <p><strong class="text-primary">' . $respond->subject . '</strong> - 
                            <strong class="text-success">' . $respond->responds_by->name . '</strong> - 
-                           <small>' . $respond->date . '</small> - 
+                           <small>' . Carbon::parse($respond->date)->format('Y-m-d') . '</small> - 
                            <small>' . $respond->time . '</small> - 
                            <strong class="text-primary">Assigned To: </strong><strong>' . $assignedUsers . '</strong>
                         </p>
@@ -853,7 +895,11 @@ class TenderController extends Controller
                     </div>
                 </div>';
             }
-            $responsesHtml .= '</ul></div>';
+            $responsesHtml .= '</div>
+                        </li>
+                    </ul>
+                    
+                    </div>';
 
             // Generate files HTML
             $filesHtml = '<div class="dropdown p-1">

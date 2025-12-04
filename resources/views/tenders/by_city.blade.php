@@ -502,10 +502,24 @@
                     { data: 'action', name: 'action' }
                 ],
                 drawCallback: function(settings) {
-                    $('.tender_response_users').select2({
-                        width: '100%',
-                        placeholder: "Assign to users",
-                        allowClear: true
+                    // Initialize Select2 with dropdown parent set to the dropdown container
+                    $('.tender_response_users').each(function() {
+                        var $select = $(this);
+                        // Find the closest dropdown container (parent of dropdown-menu)
+                        var $dropdownContainer = $select.closest('.dropdown');
+                        if ($dropdownContainer.length === 0) {
+                            $dropdownContainer = $select.closest('.dropdown-menu').parent();
+                        }
+                        // Destroy existing Select2 instance if any
+                        if ($select.hasClass('select2-hidden-accessible')) {
+                            $select.select2('destroy');
+                        }
+                        $select.select2({
+                            width: '100%',
+                            placeholder: "Assign to users",
+                            allowClear: true,
+                            dropdownParent: $dropdownContainer.length ? $dropdownContainer : $('#tender_details_section')
+                        });
                     });
                     
                     // Set up dropdown event handler to prevent closing on form interactions
@@ -798,6 +812,47 @@
     /* Ensure proper spacing between sections */
     #tender_details_section {
         margin-top: 20px;
+    }
+    
+    /* Ensure Select2 dropdown stays within dropdown menu */
+    .dropdown-menu .select2-container {
+        position: relative !important;
+    }
+    
+    .dropdown-menu .select2-dropdown {
+        position: absolute !important;
+        z-index: 9999 !important;
+    }
+    
+    /* Ensure dropdown menu stays anchored to its container */
+    #tender_details_table .dropdown {
+        position: relative !important;
+    }
+    
+    /* Prevent dropdown from shifting when scrolling */
+    #tender_details_table .dropdown-menu {
+        position: absolute !important;
+        transform: none !important;
+        will-change: auto !important;
+    }
+    
+    /* Ensure table cells provide proper positioning context */
+    #tender_details_table td {
+        position: relative;
+        overflow: visible;
+    }
+    
+    /* Prevent dropdown menu from moving when scrolling within responses */
+    #tender_details_table .dropdown-menu .px-2 {
+        position: relative;
+    }
+    
+    /* Ensure dropdown menu container doesn't move */
+    #tender_details_table .dropdown.show .dropdown-menu {
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        transform: translateX(0) translateY(0) !important;
     }
     </style>
 @endsection 

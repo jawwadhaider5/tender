@@ -436,10 +436,24 @@ class ClientController extends Controller
                 ]);
 
                 $dt = $client->date->format('M, d Y H:i:s A');
-                // User::find($client->assigned_user_id)->notify(new NotificationsTenderRespond($dt, $user->name, $client->subject, $client->text));
-
-                foreach ($assigned_user_id as $user_id) {
-                    User::find($user_id)->notify(new NotificationsTenderRespond($dt, $user->name, $client->subject, $client->text));
+                
+                // Send notifications - wrapped in try-catch so failures don't break the API
+                if (is_array($assigned_user_id) && !empty($assigned_user_id)) {
+                    foreach ($assigned_user_id as $user_id) {
+                        // Skip invalid user IDs
+                        if ($user_id && $user_id != '-' && $user_id != '') {
+                            try {
+                                $assignedUser = User::find($user_id);
+                                if ($assignedUser) {
+                                    $assignedUser->notify(new NotificationsTenderRespond($dt, $user->name, $client->subject, $client->text));
+                                }
+                            } catch (\Throwable $notificationException) {
+                                // Log notification error but don't break the API
+                                Log::warning("Failed to send notification to user ID {$user_id} for client response ID {$client->id}: " . $notificationException->getMessage());
+                                // Continue to next user - don't re-throw exception
+                            }
+                        }
+                    }
                 }
 
                 $output = array('success' => true, 'message' => "Responded successfully");
@@ -476,10 +490,24 @@ class ClientController extends Controller
             ]);
 
             $dt = $client->date->format('M, d Y H:i:s A');
-            // User::find($client->assigned_user_id)->notify(new NotificationsTenderRespond($dt, $user->name, $client->subject, $client->text));
-
-            foreach ($assigned_user_id as $user_id) {
-                User::find($user_id)->notify(new NotificationsTenderRespond($dt, $user->name, $client->subject, $client->text));
+            
+            // Send notifications - wrapped in try-catch so failures don't break the API
+            if (is_array($assigned_user_id) && !empty($assigned_user_id)) {
+                foreach ($assigned_user_id as $user_id) {
+                    // Skip invalid user IDs
+                    if ($user_id && $user_id != '-' && $user_id != '') {
+                        try {
+                            $assignedUser = User::find($user_id);
+                            if ($assignedUser) {
+                                $assignedUser->notify(new NotificationsTenderRespond($dt, $user->name, $client->subject, $client->text));
+                            }
+                        } catch (\Throwable $notificationException) {
+                            // Log notification error but don't break the API
+                            Log::warning("Failed to send notification to user ID {$user_id} for client response ID {$client->id}: " . $notificationException->getMessage());
+                            // Continue to next user - don't re-throw exception
+                        }
+                    }
+                }
             }
 
             $output = array('success' => true, 'message' => "Responded successfully");
@@ -683,12 +711,9 @@ class ClientController extends Controller
 
     public function clientsByCity()
     {
-        $user = auth()->user();
-        $user->userdetail;
-
         if (request()->ajax()) {
             $cities = City::with(['clients.group'])->get()->groupBy('code');
-            
+                
             $data = [];
             foreach ($cities as $code => $cityGroup) {
                 $cityData = [];
@@ -700,7 +725,7 @@ class ClientController extends Controller
                     
                     foreach ($clientsByGroup as $groupId => $clients) {
                         $groupName = 'No Group';
-                        if ($groupId && $clients->first()->group) {
+                        if ($groupId && $clients->first() && $clients->first()->group) {
                             $groupName = $clients->first()->group->name;
                         }
                         
@@ -731,6 +756,9 @@ class ClientController extends Controller
 
             return response()->json(['data' => $data]);
         }
+
+        $user = auth()->user();
+        $user->userdetail;
 
         return view('clients.by_city');
     }
@@ -937,50 +965,63 @@ class ClientController extends Controller
                     '
                 )
                 ->addColumn('respond', '
-                <div class="dropdown p-1">
+                <div class="dropdown p-1" style="position: relative;">
                     <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                         {{ $firstrespond }}
                     </button>
-                    <ul class="dropdown-menu p-1" aria-labelledby="dropdownMenuButton1" style="width:500px">
-                        <li><form method="POST" action="/post-client-responds">
-                        <input type="hidden" name="_token" value="{{ csrf_token() }}" />
-                        <input type="hidden" name="client_id" id="client-id" value="{{$id}}"> 
-                        <div class="row">
-                            <div class="form-group row mb-1">
-                                <div class="col-sm-3">
-                                    <input type="date" name="date" class="form-control" required>
+                    <ul class="dropdown-menu p-2" aria-labelledby="dropdownMenuButton1" style="width:650px; max-width:90vw; position: relative;">
+                        <li>
+                            <form method="POST" action="/post-client-responds" class="mb-2">
+                                <input type="hidden" name="_token" value="{{ csrf_token() }}" />
+                                <input type="hidden" name="client_id" id="client-id" value="{{$id}}"> 
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-4">
+                                        <label class="form-label small mb-1">Date</label>
+                                        <input type="date" name="date" class="form-control form-control-sm" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small mb-1">Time</label>
+                                        <input type="time" name="time" class="form-control form-control-sm" required>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label small mb-1">Subject</label>
+                                        <select name="subject" class="form-control form-control-sm" required>
+                                            <option value="-">Select Subject</option>
+                                            <option value="Subject One">Subject One</option>
+                                            <option value="Subject Two">Subject Two</option>
+                                            <option value="Subject Three">Subject Three</option>
+                                            <option value="Subject Four">Subject Four</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="col-sm-2">
-                                    <input type="time" name="time" class="form-control" required>
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-7">
+                                        <label class="form-label small mb-1">Response</label>
+                                        <input type="text" name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control form-control-sm" required>
+                                        <div id="text-error" class="alert alert-danger mt-1 p-1" style="display: none; font-size: 11px;"></div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label small mb-1">Assign To</label>
+                                        <div style="position: relative;">
+                                            <select name="assigned_user_id[]" class="form-control form-control-sm select2 client_response_users" multiple style="width: 100% !important;">
+                                                {!! $allusers !!} 
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-sm-3">
-                                <select name="subject" class="form-control" id="" required>
-                                    <option value="-">Select Subject</option>
-                                    <option value="Subject One">Subject One</option>
-                                    <option value="Subject Two">Subject Two</option>
-                                    <option value="Subject Three">Subject Three</option>
-                                    <option value="Subject Four">Subject Four</option>
-                                </select>
+                                <div class="row">
+                                    <div class="col-12 text-end">
+                                        <button type="submit" class="btn btn-sm btn-primary" id="submit-client-form">Respond</button>
+                                    </div>
                                 </div>
-                                <div class="col-sm-3">
-                                    <input type="text" name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control" required>
-                                    <div id="text-error" class="alert alert-danger mt-3" style="display: none;"></div>
-                                </div>
-                                <div class="col-sm-2"> 
-                                    <select name="assigned_user_id[]" class="form-control select2 client_response_users" multiple>
-                                        {!! $allusers !!} 
-                                    </select>  
-                                </div>
-                                <div class="col-sm-1">
-                                    <button type="submit" class="btn btn-sm btn-primary me-1 float-end" id="submit-client-form">Respond</button>
-                                </div>
-                            </div>
-                        </div>
-                    </form></li> 
-                        {!! $respond !!}
+                            </form>
+                        </li>
+                        <li class="divider" style="border-top: 1px solid #ddd; margin: 8px 0;"></li>
+                        <li>
+                            <div class="px-2" style="max-height: 300px; overflow-y: auto;">{!! $respond !!}</div>
+                        </li>
                     </ul>
-                    
-                    </div>')
+                </div>')
                 ->addColumn('files', '
                 <div class="dropdown p-1">
                     <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">

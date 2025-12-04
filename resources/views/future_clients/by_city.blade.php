@@ -322,48 +322,63 @@
                     { data: 'id', name: 'id' },
                     { data: 'client.company_name', name: 'client.company_name', render: function(data, type, row) { 
                         return '<a href="/future-clients/'+row.id+'" class="text-decoration-none">'+ row.client.company_name + '</a>';
-                    } }, 
-                    { data: 'comment', name: 'comment' }, 
+                    } },
+                    { data: 'comment', name: 'comment' },
                     { data: 'respond', name: 'respond' },
                     { data: 'files', name: 'files' },
                     { data: 'action', name: 'action' }
                 ],
                 drawCallback: function(settings) {
-                    $('.future_client_response_users').select2({
-                        width: '100%',
-                        placeholder: "Assign to users",
-                        allowClear: true
+                    // Initialize Select2 with dropdown parent set to the dropdown container
+                    $('.future_client_response_users').each(function() {
+                        var $select = $(this);
+                        // Find the closest dropdown container (parent of dropdown-menu)
+                        var $dropdownContainer = $select.closest('.dropdown');
+                        if ($dropdownContainer.length === 0) {
+                            $dropdownContainer = $select.closest('.dropdown-menu').parent();
+                        }
+                        // Destroy existing Select2 instance if any
+                        if ($select.hasClass('select2-hidden-accessible')) {
+                            $select.select2('destroy');
+                        }
+                        $select.select2({
+                            width: '100%',
+                            placeholder: "Assign to users",
+                            allowClear: true,
+                            dropdownParent: $dropdownContainer.length ? $dropdownContainer : $('#future_client_details_section')
+                        });
                     });
                     $('.dropdown-menu').on('click', function (event) {
                         // Allow delete and edit button clicks to work
-                        if (!$(event.target).hasClass('delete-future-client') && 
+                        if (!$(event.target).hasClass('delete-future-client') &&
                             !$(event.target).closest('.delete-future-client').length &&
-                            !$(event.target).hasClass('edit-future-client') && 
+                            !$(event.target).hasClass('edit-future-client') &&
                             !$(event.target).closest('.edit-future-client').length &&
-                            !$(event.target).hasClass('delete-comment') && 
+                            !$(event.target).hasClass('delete-comment') &&
                             !$(event.target).closest('.delete-comment').length &&
-                            !$(event.target).hasClass('delete-respond') && 
+                            !$(event.target).hasClass('delete-respond') &&
                             !$(event.target).closest('.delete-respond').length &&
-                            !$(event.target).hasClass('delete-file') && 
+                            !$(event.target).hasClass('delete-file') &&
                             !$(event.target).closest('.delete-file').length) {
                             event.stopPropagation();
                         }
                     });
+                    
                 }
             });
-            
+
             // Scroll to the future client details section
             $('html, body').animate({
                 scrollTop: $('#future_client_details_section').offset().top - 100
             }, 500);
         }
-        
+
         // Handle form submissions for comments, responses, and files
         $(document).on('submit', 'form[action*="post-future-client-comments"]', function(e) {
             e.preventDefault();
             var form = $(this);
             var data = form.serialize();
-            
+
             $.ajax({
                 method: "POST",
                 url: form.attr("action"),
@@ -379,12 +394,12 @@
                 }
             });
         });
-        
+
         $(document).on('submit', 'form[action*="post-future-client-responds"]', function(e) {
             e.preventDefault();
             var form = $(this);
             var data = form.serialize();
-            
+
             $.ajax({
                 method: "POST",
                 url: form.attr("action"),
@@ -400,12 +415,12 @@
                 }
             });
         });
-        
+
         $(document).on('submit', 'form[action*="post-future-client-files"]', function(e) {
             e.preventDefault();
             var form = $(this);
             var formData = new FormData(form[0]);
-            
+
             $.ajax({
                 method: "POST",
                 url: form.attr("action"),
@@ -423,7 +438,7 @@
                 }
             });
         });
-        
+
         // Handle delete actions
         $(document).on('click', 'a.delete-comment', function(e) {
             e.preventDefault();
@@ -452,7 +467,7 @@
                 }
             });
         });
-        
+
         $(document).on('click', 'a.delete-respond', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -480,7 +495,7 @@
                 }
             });
         });
-        
+
         $(document).on('click', 'a.delete-file', function(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -511,16 +526,16 @@
 
         // Handle edit future client modal
         $(document).on('click', 'a.edit-future-client', function(e) {
-            e.preventDefault();   
+            e.preventDefault();
             var url = $(this).attr("href");
 
             $.ajax({
                 url: url,
                 dataType: "html",
-                success: function(result) {  
-                    $('#edit_future_client_modal').html(result).modal('show'); 
+                success: function(result) {
+                    $('#edit_future_client_modal').html(result).modal('show');
                 },
-                error: function(xhr, status, error) { 
+                error: function(xhr, status, error) {
                     console.error("AJAX Error: ", status, error);
                 }
             });
@@ -553,7 +568,7 @@
         $(document).on('click', 'a.delete-future-client', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             swal({
                 title: "Do you want to delete future client ?",
                 icon: "warning",
@@ -561,7 +576,7 @@
                 dangerMode: true,
             }).then((willDelete) => {
                 if (willDelete) {
-                    var href = $(this).attr('href'); 
+                    var href = $(this).attr('href');
                     $.ajax({
                         method: "DELETE",
                         url: href,
@@ -569,14 +584,14 @@
                         success: function(result) {
                             if (result.success == true) {
                                 swal("Deleted!", "Future client is successfully deleted.", "success");
-                                
+
                                 // Hide the details section
                                 $('#future_client_details_section').hide();
                                 if (futureClientDetailsTable) {
                                     futureClientDetailsTable.destroy();
                                     futureClientDetailsTable = null;
                                 }
-                                
+
                                 // Refresh the main city table
                                 try {
                                     var mainTable = $('#future_clients_by_city_table').DataTable();
@@ -700,6 +715,47 @@
     /* Ensure proper spacing between sections */
     #future_client_details_section {
         margin-top: 20px;
+    }
+
+    /* Ensure Select2 dropdown stays within dropdown menu */
+    .dropdown-menu .select2-container {
+        position: relative !important;
+    }
+
+    .dropdown-menu .select2-dropdown {
+        position: absolute !important;
+        z-index: 9999 !important;
+    }
+    
+    /* Ensure dropdown menu stays anchored to its container */
+    #future_client_details_table .dropdown {
+        position: relative !important;
+    }
+    
+    /* Prevent dropdown from shifting when scrolling */
+    #future_client_details_table .dropdown-menu {
+        position: absolute !important;
+        transform: none !important;
+        will-change: auto !important;
+    }
+    
+    /* Ensure table cells provide proper positioning context */
+    #future_client_details_table td {
+        position: relative;
+        overflow: visible;
+    }
+    
+    /* Prevent dropdown menu from moving when scrolling within responses */
+    #future_client_details_table .dropdown-menu .px-2 {
+        position: relative;
+    }
+    
+    /* Ensure dropdown menu container doesn't move */
+    #future_client_details_table .dropdown.show .dropdown-menu {
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        transform: translateX(0) translateY(0) !important;
     }
     </style>
 @endsection

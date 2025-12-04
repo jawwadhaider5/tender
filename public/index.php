@@ -44,12 +44,33 @@ require __DIR__.'/../vendor/autoload.php';
 |
 */
 
+// Start output buffering early to catch any deprecation warnings
+ob_start();
+
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
 $kernel = $app->make(Kernel::class);
 
-$response = $kernel->handle(
-    $request = Request::capture()
-)->send();
+$request = Request::capture();
+
+// For AJAX/JSON requests, suppress display of errors to keep JSON clean
+if ($request->ajax() || $request->wantsJson()) {
+    $oldDisplayErrors = ini_get('display_errors');
+    ini_set('display_errors', '0');
+}
+
+$response = $kernel->handle($request);
+
+// Clean any output that was captured before sending response
+if ($request->ajax() || $request->wantsJson()) {
+    ob_end_clean();
+    if (isset($oldDisplayErrors)) {
+        ini_set('display_errors', $oldDisplayErrors);
+    }
+} else {
+    ob_end_flush();
+}
+
+$response->send();
 
 $kernel->terminate($request, $response);
