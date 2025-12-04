@@ -726,17 +726,28 @@ class FutureClientController extends Controller
                             $groupName = $firstFutureClient->client->group->name;
                         }
                         
+                        // Sort clients alphabetically by company name
+                        $clientsArray = $futureClientsInGroup->map(function($futureClient) {
+                            return [
+                                'id' => $futureClient->id,
+                                'name' => $futureClient->client->company_name
+                            ];
+                        })->values()->toArray();
+                        usort($clientsArray, function($a, $b) {
+                            return strcasecmp($a['name'], $b['name']);
+                        });
+                        
                         $groups[] = [
                             'id' => $groupId,
                             'name' => $groupName,
-                            'clients' => $futureClientsInGroup->map(function($futureClient) {
-                                return [
-                                    'id' => $futureClient->id,
-                                    'name' => $futureClient->client->company_name
-                                ];
-                            })->values()->toArray()
+                            'clients' => $clientsArray
                         ];
                     }
+                    
+                    // Sort groups alphabetically by name
+                    usort($groups, function($a, $b) {
+                        return strcasecmp($a['name'], $b['name']);
+                    });
                     
                     $firstFutureClient = $futureClientsInCity->first();
                     return [
@@ -744,13 +755,23 @@ class FutureClientController extends Controller
                         'name' => $firstFutureClient->client->city->name ?? 'Unknown',
                         'groups' => $groups
                     ];
-                })->values();
+                })->values()->toArray();
+                
+                // Sort cities alphabetically by name
+                usort($cities, function($a, $b) {
+                    return strcasecmp($a['name'], $b['name']);
+                });
                 
                 return [
                     'code' => $code,
                     'cities' => $cities
                 ];
-            })->values();
+            })->values()->toArray();
+            
+            // Sort data by city code alphabetically
+            usort($citiesData, function($a, $b) {
+                return strcasecmp($a['code'], $b['code']);
+            });
 
             return response()->json(['data' => $citiesData]);
         }

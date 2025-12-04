@@ -727,17 +727,28 @@ class TenderController extends Controller
                             $groupName = $tenders->first()->client->group->name;
                         }
                         
+                        // Sort tenders alphabetically by company name and tender number
+                        $clientsArray = $tenders->map(function($tender) {
+                            return [
+                                'id' => $tender->id,
+                                'name' => $tender->client->company_name . ' - ' . $tender->tender_number
+                            ];
+                        })->toArray();
+                        usort($clientsArray, function($a, $b) {
+                            return strcasecmp($a['name'], $b['name']);
+                        });
+                        
                         $groups[] = [
                             'id' => $groupId ?: 'no-group',
                             'name' => $groupName,
-                            'clients' => $tenders->map(function($tender) {
-                                return [
-                                    'id' => $tender->id,
-                                    'name' => $tender->client->company_name . ' - ' . $tender->tender_number
-                                ];
-                            })->toArray()
+                            'clients' => $clientsArray
                         ];
                     }
+                    
+                    // Sort groups alphabetically by name
+                    usort($groups, function($a, $b) {
+                        return strcasecmp($a['name'], $b['name']);
+                    });
                     
                     $cityData[] = [
                         'id' => $city->id,
@@ -746,11 +757,21 @@ class TenderController extends Controller
                     ];
                 }
                 
+                // Sort cities alphabetically by name
+                usort($cityData, function($a, $b) {
+                    return strcasecmp($a['name'], $b['name']);
+                });
+                
                 $data[] = [
                     'code' => $code,
                     'cities' => $cityData
                 ];
             }
+            
+            // Sort data by city code alphabetically
+            usort($data, function($a, $b) {
+                return strcasecmp($a['code'], $b['code']);
+            });
 
             return response()->json(['data' => $data]);
         }
