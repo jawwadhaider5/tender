@@ -145,7 +145,7 @@ class ClientController extends Controller
                         <div class="row">
                             <div class="form-group row mb-1">
                                 <div class="col-sm-9">
-                                    <input type="text" name="text" id="comment-text" placeholder="Enter Your Comment..." class="form-control" required>
+                                    <textarea name="text" id="comment-text" placeholder="Enter Your Comment..." class="form-control" rows="5" style="min-height: 120px; height: 120px;" required></textarea>
                                     <div id="text-error" class="alert alert-danger mt-3" style="display: none;"></div>
                                 </div>
                                 <div class="col-sm-3">
@@ -187,7 +187,7 @@ class ClientController extends Controller
                                 </select>
                                 </div>
                                 <div class="col-sm-3">
-                                    <input type="text" name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control" required>
+                                    <textarea name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control" rows="3" required></textarea>
                                     <div id="text-error" class="alert alert-danger mt-3" style="display: none;"></div>
                                 </div>
                                 <div class="col-sm-2"> 
@@ -970,7 +970,7 @@ class ClientController extends Controller
                         <div class="row">
                             <div class="form-group row mb-1">
                                 <div class="col-sm-9">
-                                    <input type="text" name="text" id="comment-text" placeholder="Enter Your Comment..." class="form-control" required>
+                                    <textarea name="text" id="comment-text" placeholder="Enter Your Comment..." class="form-control" rows="5" style="min-height: 120px; height: 120px;" required></textarea>
                                     <div id="text-error" class="alert alert-danger mt-3" style="display: none;"></div>
                                 </div>
                                 <div class="col-sm-3">
@@ -1018,7 +1018,7 @@ class ClientController extends Controller
                                 <div class="row g-2 mb-2">
                                     <div class="col-md-7">
                                         <label class="form-label small mb-1">Response</label>
-                                        <input type="text" name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control form-control-sm" required>
+                                        <textarea name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control form-control-sm" rows="3" required></textarea>
                                         <div id="text-error" class="alert alert-danger mt-1 p-1" style="display: none; font-size: 11px;"></div>
                                     </div>
                                     <div class="col-md-5">

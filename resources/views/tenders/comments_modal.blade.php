@@ -14,7 +14,7 @@
             <div class="row">
                 <div class="form-group row mb-1">
                     <div class="col-sm-10">
-                        {!! Form::text('text', null, array('placeholder' => 'Enter Your Comment...','class' => 'form-control', 'required')) !!}
+                        {!! Form::textarea('text', null, array('placeholder' => 'Enter Your Comment...','class' => 'form-control', 'rows' => 5, 'style' => 'min-height: 120px; height: 120px;', 'required')) !!}
                         @if ($errors->has('text'))
                         <div class="alert  alert-danger mt-3">{{ $errors->first('text') }}</div>
                         @endif

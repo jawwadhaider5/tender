@@ -156,14 +156,9 @@
                     { data: 'action', name: 'action' }
                 ],
                 drawCallback: function(settings) {
-                    // Initialize Select2 with dropdown parent set to the dropdown container
+                    // Initialize Select2 with dropdown parent set to body to avoid clipping
                     $('.client_response_users').each(function() {
                         var $select = $(this);
-                        // Find the closest dropdown container (parent of dropdown-menu)
-                        var $dropdownContainer = $select.closest('.dropdown');
-                        if ($dropdownContainer.length === 0) {
-                            $dropdownContainer = $select.closest('.dropdown-menu').parent();
-                        }
                         // Destroy existing Select2 instance if any
                         if ($select.hasClass('select2-hidden-accessible')) {
                             $select.select2('destroy');
@@ -172,7 +167,7 @@
                             width: '100%',
                             placeholder: "Assign to users",
                             allowClear: true,
-                            dropdownParent: $dropdownContainer.length ? $dropdownContainer : $('#client_details_section')
+                            dropdownParent: $('body')
                         });
                     });
                     $('.dropdown-menu').on('click', function (event) {
@@ -478,14 +473,23 @@
         margin-top: 20px;
     }
     
-    /* Ensure Select2 dropdown stays within dropdown menu */
-    .dropdown-menu .select2-container {
-        position: relative !important;
+    /* Make Select2 dropdown results scrollable */
+    .select2-results__options {
+        max-height: 200px !important;
+        overflow-y: auto !important;
     }
     
-    .dropdown-menu .select2-dropdown {
-        position: absolute !important;
-        z-index: 9999 !important;
+    /* Ensure Select2 dropdown has proper z-index when opened */
+    .select2-container--open .select2-dropdown {
+        z-index: 10000 !important;
+    }
+    
+    /* Make comment textareas larger */
+    #comment-text,
+    textarea[name="text"][id="comment-text"],
+    textarea[placeholder*="Comment"] {
+        min-height: 60px !important;
+        height: 60px !important;
     }
     </style>
 @endsection

@@ -797,9 +797,10 @@ class TenderController extends Controller
             }
 
             // Generate comments HTML
+            $firstCommentText = $tender->comments->count() > 0 ? $tender->comments->first()->text : 'No Comments yet';
             $commentsHtml = '<div class="dropdown p-1">
                 <button class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    ' . ($tender->comments->count() > 0 ? $tender->comments->first()->text : 'No Comments yet') . '
+                    ' . $firstCommentText . '
                 </button>
                 <ul class="dropdown-menu p-1 bg-light" style="width:750px">
                     <li>
@@ -809,7 +810,7 @@ class TenderController extends Controller
                             <div class="row">
                                 <div class="form-group row mb-1">
                                     <div class="col-sm-9">
-                                        <input type="text" name="text" placeholder="Enter Your Comment..." class="form-control" required>
+                                        <textarea name="text" placeholder="Enter Your Comment..." class="form-control" rows="5" style="min-height: 120px; height: 120px;" required></textarea>
                                     </div>
                                     <div class="col-sm-3">
                                         <button type="submit" class="btn btn-primary me-2 float-end">Comment</button>
@@ -870,7 +871,7 @@ class TenderController extends Controller
                             <div class="row g-2 mb-2">
                                 <div class="col-md-7">
                                     <label class="form-label small mb-1">Response</label>
-                                    <input type="text" name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control form-control-sm" required>
+                                    <textarea name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control form-control-sm" rows="3" required></textarea>
                                     <div id="text-error" class="alert alert-danger mt-1 p-1" style="display: none; font-size: 11px;"></div>
                                 </div>
                                 <div class="col-md-5">

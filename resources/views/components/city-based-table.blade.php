@@ -166,10 +166,8 @@ $(document).ready(function() {
             cityLinks.slideToggle();
             // Hide selected city if showing all cities
             citySelected.hide().html('');
-            // Hide details section when collapsing
-            if (!cityLinks.is(':visible')) {
-                hideDetailsSection();
-            }
+            // Always hide details section when clicking on code link
+            hideDetailsSection();
         }
     });
 

@@ -95,7 +95,7 @@
                                   <div class="row">
                                     <div class="form-group row mb-1">
                                       <div class="col-sm-9">
-                                        <input type="text" name="text" id="comment-text" placeholder="Enter Your Comment..." class="form-control" required>
+                                        <textarea name="text" id="comment-text" placeholder="Enter Your Comment..." class="form-control" rows="5" style="min-height: 120px; height: 120px;" required></textarea>
                                         <div id="text-error" class="alert alert-danger mt-3" style="display: none;"></div>
                                       </div>
                                       <div class="col-sm-3">
@@ -111,7 +111,7 @@
                                   <p><strong class="text-success">{{$cmt->comment_by->name}}</strong> - <small>{{$cmt->created_at}}</small></p><br>
                                 </div>
                                 <div class="row d-flex justify-content-between">
-                                  <p>{{$cmt->text}} <br> <small><a href="/tender-comment-delete/{{$cmt->id}}" class="btn btn-sm btn-danger delete-comment">Delete</a></small></p>
+                                  <p style="white-space: pre-wrap; word-wrap: break-word; max-width: 100%;">{{$cmt->text}} <br> <small><a href="/tender-comment-delete/{{$cmt->id}}" class="btn btn-sm btn-danger delete-comment">Delete</a></small></p>
                                 </div>
                               </div>
                               @endforeach
@@ -148,7 +148,7 @@
                                         </select>
                                       </div>
                                       <div class="col-sm-3">
-                                        <input type="text" name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control" required>
+                                        <textarea name="text" id="respond-text" placeholder="Enter Your respond..." class="form-control" rows="3" required></textarea>
                                         <div id="text-error" class="alert alert-danger mt-3" style="display: none;"></div>
                                       </div>
                                       <div class="col-sm-2">
@@ -553,6 +553,24 @@
 </div>
 <!-- main-panel ends -->
 
+@endsection
+
+@section('styles')
+<style>
+    /* Make Select2 dropdown results scrollable */
+    .select2-results__options {
+        max-height: 200px !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Make comment textareas larger */
+    #comment-text,
+    textarea[name="text"][id="comment-text"],
+    textarea[placeholder*="Comment"] {
+        min-height: 60px !important;
+        height: 60px !important;
+    }
+</style>
 @endsection
 
 @section('javascript')
