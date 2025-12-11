@@ -53,7 +53,8 @@ $(document).ready(function() {
             {
                 data: 'code',
                 render: function(data, type, row) {
-                    return '<a href="#" class="code-link" data-code="' + data + '">' + data + '</a>';
+                    return '<div class="code-selected" style="display: none;"></div>' +
+                           '<a href="#" class="code-link" data-code="' + data + '">' + data + '</a>';
                 }
             },
             {
@@ -128,8 +129,69 @@ $(document).ready(function() {
         ],
         order: [[0, 'asc']],
         pageLength: 10,
-        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]]
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        drawCallback: function(settings) {
+            // Maintain row visibility state after table redraw
+            if (activeCode !== null) {
+                // Re-apply the hiding of other rows
+                setTimeout(function() {
+                    hideOtherRows(activeCode);
+                }, 10);
+            } else {
+                // No active code, show all rows
+                setTimeout(function() {
+                    showAllRows();
+                }, 10);
+            }
+        }
     });
+
+    // Track which city code is active
+    var activeCode = null;
+
+    // Function to hide other rows (keep active row visible)
+    function hideOtherRows(activeCodeValue) {
+        // Hide entire rows for all city codes except the active one
+        $('#{{ $tableId }} tbody tr').each(function() {
+            var $row = $(this);
+            // Get code from either code-link or code-selected
+            var $codeLink = $row.find('.code-link');
+            var $codeSelected = $row.find('.code-selected');
+            var rowCode = null;
+            
+            if ($codeLink.length) {
+                rowCode = $codeLink.data('code');
+            }
+            
+            if (!rowCode && $codeSelected.length) {
+                // Try to get from code-selected
+                rowCode = $codeSelected.data('code');
+                if (!rowCode) {
+                    // Get from text content
+                    var selectedText = $codeSelected.find('.selected-text').text();
+                    if (selectedText) {
+                        rowCode = selectedText.trim();
+                    }
+                }
+            }
+            
+            // If this is not the active row, hide the entire row
+            if (rowCode !== activeCodeValue) {
+                $row.addClass('other-row-hidden');
+            } else {
+                // This is the active row, ensure it's visible
+                $row.removeClass('other-row-hidden');
+            }
+        });
+    }
+
+    // Function to show all rows
+    function showAllRows() {
+        // Show all rows
+        $('#{{ $tableId }} tbody tr').each(function() {
+            $(this).removeClass('other-row-hidden');
+        });
+    }
 
     // Function to hide details section based on type
     function hideDetailsSection() {
@@ -143,32 +205,108 @@ $(document).ready(function() {
         }
     }
 
-    // Handle code click - shows cities
+    // Handle code link click - convert to selected button and hide other rows' columns
     $('#{{ $tableId }}').on('click', '.code-link', function(e) {
         e.preventDefault();
         var code = $(this).data('code');
         var row = $(this).closest('tr');
+        var codeSelected = row.find('.code-selected');
+        var codeLink = row.find('.code-link');
         var citySelected = row.find('.city-selected');
         var cityLinks = row.find('.city-links');
 
-        // If a city is selected, clear it and show all cities
-        if (citySelected.is(':visible')) {
-            citySelected.hide().html('');
-            cityLinks.slideDown();
-            // Also hide groups and data
-            row.find('.group-links').hide();
-            row.find('.group-selected').hide().html('');
-            row.find('.data-list').hide();
-            // Hide details section when data is collapsed
-            hideDetailsSection();
-        } else {
-            // Toggle the city links in the same row
-            cityLinks.slideToggle();
-            // Hide selected city if showing all cities
-            citySelected.hide().html('');
-            // Always hide details section when clicking on code link
-            hideDetailsSection();
+        // Convert code link to selected button
+        codeSelected.html('<span class="selected-item"><span class="selected-text">' + code + '</span><i class="mdi mdi-close selected-close"></i></span>')
+            .data('code', code)
+            .show();
+        codeLink.hide();
+        
+        // Set active code first
+        activeCode = code;
+        
+        // Show city links for this row
+        cityLinks.slideDown();
+        
+        // Hide other rows immediately and also after a short delay to ensure DOM is updated
+        hideOtherRows(code);
+        setTimeout(function() {
+            hideOtherRows(code);
+        }, 100);
+        citySelected.hide().html('');
+        
+        // Hide groups and data
+        row.find('.group-links').hide();
+        row.find('.group-selected').hide().html('');
+        row.find('.data-list').hide();
+        
+        // Hide details section
+        hideDetailsSection();
+    });
+
+    // Handle selected code click - convert back to link and show all columns
+    $('#{{ $tableId }}').on('click', '.code-selected .selected-item', function(e) {
+        // Don't trigger if clicking the close button
+        if ($(e.target).hasClass('mdi-close') || $(e.target).hasClass('selected-close') || $(e.target).closest('.selected-close').length) {
+            return;
         }
+        e.preventDefault();
+        e.stopPropagation();
+        var row = $(this).closest('tr');
+        var codeSelected = row.find('.code-selected');
+        var codeLink = row.find('.code-link');
+        var citySelected = row.find('.city-selected');
+        var cityLinks = row.find('.city-links');
+        
+        // Convert back to link
+        codeSelected.hide().html('').removeData('code');
+        codeLink.show();
+        
+        // Show all columns for all rows
+        activeCode = null;
+        showAllRows();
+        
+        // Hide city links
+        cityLinks.hide();
+        citySelected.hide().html('');
+        
+        // Hide groups and data
+        row.find('.group-links').hide();
+        row.find('.group-selected').hide().html('');
+        row.find('.data-list').hide();
+        
+        // Hide details section
+        hideDetailsSection();
+    });
+
+    // Handle selected code close button - same as clicking the selected item
+    $('#{{ $tableId }}').on('click', '.code-selected .selected-close', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var row = $(this).closest('tr');
+        var codeSelected = row.find('.code-selected');
+        var codeLink = row.find('.code-link');
+        var citySelected = row.find('.city-selected');
+        var cityLinks = row.find('.city-links');
+        
+        // Convert back to link
+        codeSelected.hide().html('').removeData('code');
+        codeLink.show();
+        
+        // Show all columns for all rows
+        activeCode = null;
+        showAllRows();
+        
+        // Hide city links
+        cityLinks.hide();
+        citySelected.hide().html('');
+        
+        // Hide groups and data
+        row.find('.group-links').hide();
+        row.find('.group-selected').hide().html('');
+        row.find('.data-list').hide();
+        
+        // Hide details section
+        hideDetailsSection();
     });
 
     // Handle city name click - shows groups
@@ -197,6 +335,9 @@ $(document).ready(function() {
 
         // Show the clicked city's groups
         $('#groups-' + cityId).slideDown();
+        
+        // Ensure this row remains visible (in case code is selected)
+        row.removeClass('other-row-hidden');
     });
 
     // Handle selected city click - expand to show all cities
@@ -392,7 +533,7 @@ $(document).ready(function() {
 .selected-close:hover {
     opacity: 1;
 }
-.city-selected, .group-selected {
+.city-selected, .group-selected, .code-selected {
     margin-bottom: 5px;
     margin-top: 0;
     padding: 0;
@@ -400,9 +541,12 @@ $(document).ready(function() {
     display: block;
     min-height: 32px;
 }
-.city-selected .selected-item, .group-selected .selected-item {
+.city-selected .selected-item, .group-selected .selected-item, .code-selected .selected-item {
     margin: 0;
     width: 100%;
+}
+.other-row-hidden {
+    display: none !important;
 }
 </style>
 @endpush
